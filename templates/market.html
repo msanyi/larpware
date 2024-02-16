@@ -1,0 +1,282 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Digital Market{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<div id="flashed-messages" class="chrome-box centered">
+    {% for message in messages %}
+    <div class="futuristic-text">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="chrome-box centered">
+    <div class="console-text">Your balance:</div>
+    <div class="futuristic-text bold x-large"><span id="userBalance">{{ user.balance }}</span> €$</div>
+</div>
+
+<div class="container main-content chrome-box">
+    <div class="flex-container">
+        <!-- My Inventory Items -->
+        <div class="inventory">
+            <h2 class="futuristic-text">Current inventory</h2>
+            <h3 class="futuristic-text">Apps:</h3>
+            <table class="console-text">
+                {% for item in user_apps %}
+                <tr>
+                    <td>App:</td>
+                    <td class="futuristic-text">{{ item.app_type.name }}</td>
+                    <td>&nbsp;Qty:</td>
+                    <td class="futuristic-text">{{ item.count }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td>There are no apps available on your deck</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h3 class="futuristic-text">Files:</h3>
+            {% for file in user_files %}
+            <p class="futuristic-text">{{ file.name }}</p>
+            {% else %}
+            <p class="futuristic-text">No files</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="marketplace chrome-box">
+    <!-- Displaying Market Type Listings -->
+
+    <!-- Public Listings -->
+    <h3 class="futuristic-text">Public Listings</h3>
+    <table class="listings public-listings">
+        <!-- Listing items will be inserted here dynamically -->
+    </table>
+    <div id="public-listings-empty" class="console-text">There are currently no listings on this market.</div>
+
+    {% if user.is_fixer %}
+    <!-- Fixer Listings -->
+    <h3 class="futuristic-text">Fixer</h3>
+    <table class="listings fixer-listings">
+        <!-- Listing items will be inserted here dynamically -->
+    </table>
+    <div id="fixer-listings-empty" class="console-text">There are currently no listings on this market.</div>
+    {% endif %}
+
+    {% if user.is_netrunner %}
+    <!-- Darkweb Listings -->
+    <h3 class="futuristic-text">Darkweb</h3>
+    <table class="listings darkweb-listings">
+        <!-- Listing items will be inserted here dynamically -->
+    </table>
+    <div id="darkweb-listings-empty" class="console-text">There are currently no listings on this market.</div>
+    {% endif %}
+
+    <!-- Organization Shop -->
+    <h3 class="futuristic-text">Organization Shop</h3>
+    <table class="listings organization-shop-listings">
+        <!-- Listing items will be inserted here dynamically -->
+    </table>
+    <div id="organization-shop-listings-empty" class="console-text">There are currently no listings on this
+        market.</div>
+
+    <!-- Organization Shop (Trojan) -->
+    <h3 class="futuristic-text">Organization Shop (Trojan)</h3>
+    <table class="listings organization-shop-trojan-listings">
+        <!-- Listing items will be inserted here dynamically -->
+    </table>
+    <div id="organization-shop-trojan-listings-empty" class="console-text">There are currently no listings on
+        this market.</div>
+</div>
+
+<footer class="background-style">
+    <div class="container chrome-box">
+        <span class="futuristic-text">© 2055 Digital Market. All rights reserved.</span>
+    </div>
+</footer>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    let sessionData = {{ session_data | tojson | safe }};
+    var items = {{ items| tojson }};
+    console.log('Session Data:', sessionData);
+    console.log('items:', items);
+
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        function populateListings(listType, allItems) {
+            const listings = allItems.filter(item => item.market_type === listType);
+
+            const formattedListType = listType.toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, '');
+            const listingsTable = document.querySelector(`.${formattedListType}-listings`);
+            const emptyListingDiv = document.getElementById(`${formattedListType}-listings-empty`);
+
+            if (!listingsTable) {
+                return;  // Exit the function early
+            }
+
+            listingsTable.innerHTML = ''; // Clear any previous listings
+
+            const groupedItems = {};
+
+            // Group items based on name and price
+            listings.forEach(item => {
+                const key = `${item.name}-${item.price}`;
+                if (!groupedItems[key]) {
+                    groupedItems[key] = {
+                        name: item.name,
+                        price: item.price,
+                        description: item.description,
+                        is_physical: item.listing_type === "Physical Item",
+                        count: 0,
+                        ids: []  // Initialize ids as an empty array
+                    };
+                }
+                groupedItems[key].count += 1;
+                groupedItems[key].ids.push(item.id);  // Push the item's id to the ids array
+            });
+
+            // Render the stacked items
+            let totalItems = 0;
+            for (const key in groupedItems) {
+                totalItems += groupedItems[key].count;
+            }
+
+            // If there are no items to display, hide the entire section for that listType
+            if (totalItems === 0) {
+                if (formattedListType.includes("organization")) {
+                    listingsTable.previousElementSibling.style.display = 'none';  // Hide the title (e.g., "Public Listings")
+                    emptyListingDiv.style.display = 'none';
+                } else {
+                    emptyListingDiv.style.display = '';
+                }
+                listingsTable.style.display = 'none';  // Hide the listings div
+                return;  // Exit the function early
+            } else {
+                // Otherwise, ensure the title and div are visible (in case they were hidden previously)
+                listingsTable.previousElementSibling.style.display = '';  // Show the title
+                listingsTable.style.display = '';  // Show the listings div
+                emptyListingDiv.style.display = 'none';
+            }
+
+            for (const key in groupedItems) {
+                const item = groupedItems[key];
+
+                const itemTr = document.createElement('tr');
+                itemTr.classList.add('listing-item');
+                itemTr.classList.add('console-text');
+
+                const buyButton = document.createElement('button');
+                buyButton.classList.add('buy-button');
+                buyButton.classList.add('chrome-box');
+                buyButton.classList.add('futuristic-text');
+                buyButton.innerText = 'Buy';
+                buyButton.addEventListener('click', function () {
+                    // Extract item details from the current item in the forEach loop
+                    const itemIdArray = groupedItems[`${item.name}-${item.price}`].ids;
+                    console.log(itemIdArray);
+                    buyItem(item, itemIdArray);
+                });
+
+                const itemNameRow = document.createElement('tr');
+                const itemName = document.createElement('td');
+                itemName.classList.add('futuristic-text');
+                itemName.innerHTML = item.name;
+                itemName.setAttribute("colspan", "5");
+                itemNameRow.appendChild(itemName);
+                listingsTable.appendChild(itemNameRow);
+
+                console.log(item)
+                if (item.is_physical) {
+                    console.log("item is physical item");
+                    const itemDescRow = document.createElement('tr');
+                    const itemDesc = document.createElement('td');
+                    itemDesc.classList.add('console-text');
+                    itemDesc.innerHTML = item.description;
+                    itemDesc.setAttribute("colspan", "5");
+                    itemDescRow.appendChild(itemDesc);
+                    listingsTable.appendChild(itemDescRow);
+                }
+
+                const buttonTd = document.createElement('td');
+                buttonTd.appendChild(buyButton);
+                const itemQty = document.createElement('td');
+                itemQty.classList.add('futuristic-text');
+                itemQty.innerHTML = item.count + "&nbsp;";
+                const itemQtyText = document.createElement('td');
+                itemQtyText.innerText = "Qty:";
+                const itemPrice = document.createElement('td');
+                itemPrice.classList.add('futuristic-text');
+                itemPrice.innerHTML = item.price + "&nbsp;";
+                const itemCurrencty = document.createElement('td');
+                itemCurrencty.innerText = "€$/piece:";
+
+
+                itemTr.appendChild(itemQtyText);
+                itemTr.appendChild(itemQty);
+                itemTr.appendChild(itemCurrencty);
+                itemTr.appendChild(itemPrice);
+                itemTr.appendChild(buttonTd);
+
+                listingsTable.appendChild(itemTr);
+            }
+        }
+
+        function buyItem(item, itemIdArray) {
+            console.log("Inside buyItem:", itemIdArray); // Check the received value
+            $.ajax({
+                url: '/api/purchase',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ items: itemIdArray }),
+                success: function (response) {
+                    window.location = response;
+                },
+                error: function (error) {
+                    console.error('Error during purchase:', error);
+                }
+            });
+        }
+
+
+        function displayMessage(message, type = "success") {
+            // Display the message at the top of the page
+            // Here, you'd add logic to create a message element, set its text, and show it to the user.
+            // Depending on the type (success or error), you can style it differently.
+            console.log("Displaying message:", message); // Logging the displayed message
+            var messageDiv = document.createElement("div");
+            messageDiv.className = "success-message";
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+        }
+
+
+        // Populate listings based on the `items` data structure
+        populateListings('Public', items);
+        populateListings('Fixer', items);
+        populateListings('Darkweb', items);
+        populateListings('Organization Shop', items);
+        populateListings('Organization Shop (Trojan)', items);
+
+        setTimeout(() => {
+            $("#flashed-messages").remove();
+        }, 3000)
+
+    });
+
+</script>
+{% endblock %}

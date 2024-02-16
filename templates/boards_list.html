@@ -1,0 +1,22 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Boards{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
+<div id="boardListView">
+    {% for board in boards%}
+    <div class="chrome-box hover-glitch-border">
+        <div class="futuristic-text">{{board.name}}</div>
+        <div class="console-text">
+            {{board.new_messages_count}} new posts
+        </div>
+        <a href="{{url_for("user_app.boards_app.get_board", board_id=board.id)}}"><span class="linkbox"></span></a>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Routes</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
+</head>
+<body>
+
+<h2>Application Routes</h2>
+
+<table>
+    <tr>
+        <th>Endpoint</th>
+        <th>Methods</th>
+        <th>Route</th>
+    </tr>
+    {% for route in routes %}
+    <tr>
+        <td>{{ route.endpoint }}</td>
+        <td>{{ ", ".join(route.methods) }}</td>
+        <td>{{ route.route }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

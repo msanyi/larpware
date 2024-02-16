@@ -1,0 +1,253 @@
+body {
+    background-color: #0f0c29;
+    background-image: linear-gradient(315deg, #0f0c29 0%, #24243e 74%);
+    color: #c0c0c0;
+    font-family: 'Courier New', monospace;
+}
+
+a {
+    color: #ff2f00;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #ff5500;
+}
+
+.container {
+    max-width: 960px;
+    margin: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid #ff2f00;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #ff2f00;
+}
+
+.btn {
+    display: inline-block;
+    background-color: #ff2f00;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    text-transform: uppercase;
+    transition: 0.3s;
+}
+
+.btn:hover {
+    background-color: #ff5500;
+}
+
+/* Glowing border for input focus */
+input[type=text]:focus, textarea:focus {
+    outline: none;
+    border: 1px solid #ff2f00;
+    box-shadow: 0 0 10px #ff2f00, 0 0 20px #ff2f00, 0 0 30px #ff2f00, 0 0 40px #ff2f00;
+}
+
+input[type=text], textarea {
+    background-color: #1e1e1e;
+    color: #fff;
+    border: 1px solid #ff2f00;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ff2f00;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ff5500;
+}
+
+ #boardList li {
+        color: blue;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    #boardList li:hover {
+        text-decoration: none;
+    }
+
+ .post {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+    }
+    .post-author {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .post-content {
+        margin-bottom: 10px;
+    }
+    .reaction-buttons {
+        margin-top: 10px;
+    }
+
+.container {
+display: flex;
+justify-content: space-between;
+padding: 20px;
+}
+
+.item-creation {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.listings {
+    flex: 2;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+th {
+    background-color: #f2f2f2;
+    cursor: pointer;
+}
+
+.sortable-icon {
+    padding-left: 5px;
+}
+
+
+header {
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 10px 0;
+    text-align: center;
+}
+
+header .logo {
+    display: inline-block;
+    margin-right: 50%;
+    color: #ff2f00;
+}
+
+header nav {
+    display: inline-block;
+}
+
+header nav a {
+    margin: 0 15px;
+    font-weight: bold;
+}
+
+.user-dropdown {
+    display: inline-block;
+    cursor: pointer;
+    margin-left: 20px;
+}
+
+.user-dropdown img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+.tabs {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #ddd;
+    margin-top: 20px;
+}
+
+.tabs a {
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+.tabs a.active {
+    border-bottom: 3px solid #ff2f00;
+}
+
+.inventory-item, .marketplace-item {
+    background-color: rgba(30, 30, 30, 0.8);
+    border: 1px solid #ff2f00;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.item-actions {
+    display: flex;
+    gap: 10px;
+}
+
+footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: #c0c0c0;
+}
+
+
+/* Default style for mobile - stack both sections vertically */
+    .flex-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .inventory {
+        padding-bottom: 20px;
+    }
+
+    .marketplace {
+        padding-top: 20px;
+    }
+
+    /* Media query for larger screens - show sections side-by-side */
+    @media (min-width: 768px) {  /* Adjust the breakpoint as needed */
+        .flex-container {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        .inventory {
+            padding-right: 20px;
+            border-right: 1px solid #ff2f00;
+            padding-bottom: 0;
+        }
+
+        .marketplace {
+            padding-left: 20px;
+            padding-top: 0;
+        }
+    }
+
+
+.buy-button {
+    cursor: pointer;
+    background-color: #007BFF;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+}

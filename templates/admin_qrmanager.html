@@ -1,0 +1,171 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}QR Manager{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div id="reader" class="chrome-box scanner-size"></div>
+<br>
+{% if message %}
+<p>{{ message }}</p>
+{% endif %}
+<p id="message"></p>
+<div id="qr-code-content" class="console-text chrome-box"></div>
+
+<div id="items-list"></div>
+<div id="cash-shard-creator" class="futuristic-text" style="display: none;">
+    <label for="shard-amount">install cryptokey on shard for €$:</label>
+    <input type="number" name="shard-amount" id="shard-amount" class="chrome-box futuristic-text">
+    <input type="hidden" name="shard-id" id="shard-id" value="">
+    <button id="shard-addcash" onclick="setCashShard();" class="chrome-box futuristic-text"> Add €$ to shard!</button>
+</div>
+<ul class="console-text">
+
+</ul>
+
+{% endblock %}
+{% block script %}
+<script src="{{ url_for('static', filename='html5-qrcode.min.js') }}"></script>
+<script type="text/javascript">
+    let canScan = true; // This flag is used to prevent multiple scans within 5 seconds
+
+    function onScanSuccess(decodedText, decodedResult) {
+
+        if (!canScan) return; // Exit the function if canScan is false
+        canScan = false; // Set the flag to false to prevent further scans
+        setTimeout(() => {
+            canScan = true; // Re-enable scanning after 5 seconds
+        }, 5000);
+
+        console.log(`Code scanned = ${decodedText}`, decodedResult);
+        // Reset the previously displayed content and message
+        $('#qr-code-content').empty();
+        $('#message').empty();
+        $('#items-list').empty();
+        $('#cash-shard-creator').hide();
+
+
+        $('#qr-code-content').text(`QR Code Content: ${decodedText}`);
+        //console.log(`qr-code-content`, qr-code-content);
+        // Check if the QR code has something assigned to it
+
+        $.ajax({
+            url: "{{ url_for('admin_app.admin_qrmanager_app.admin_qrmanager_scan') }}", // Pointing to admin_qrsetter
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ qr_content: decodedText }),
+            success: function (data) {
+                console.log("Session data", data);
+                $('#shard-id').val(decodedText);
+                if (data.assigned_data) {
+                    let content = "Target ID associated with this QR Code: " + data.assigned_data.targetid;
+                    if (data.assigned_data.type) {
+                        content += "<br>Type: " + data.assigned_data.type;
+                    }
+                    if (data.assigned_data.name) {
+                        content += "<br>Name: " + data.assigned_data.name;
+                    }
+                    $("#qr-code-content").html(content);  // Update the DOM
+                } else if (data.organization_id) {
+                    $("#qr-code-content").text("Organization associated with this QR Code: " + data.organization_name);
+                }
+
+                if (data.items && data.items.length > 0) {
+                    // Create a dictionary to hold items grouped by name
+                    var groupedItems = {};
+
+                    $.each(data.items, function (i, item) {
+                        if (groupedItems[item.name]) {
+                            groupedItems[item.name].push(item);
+                        } else {
+                            groupedItems[item.name] = [item];
+                        }
+                    });
+
+                    // Iterate over each group of items
+                    $.each(groupedItems, function (name, items) {
+                        var firstItemId = items[0].id;
+                        var firstItemType = items[0].type;
+                        var qrcodetype = data.qrcodetype || "defaultType";
+                        var url = "/admin/qrmanager/set";
+                        var headers = {
+                            'Content-type': 'application/json',
+                            'Accept': 'application/json'
+                        };
+                        var postdata = JSON.stringify({ item_id: firstItemId, item_type: firstItemType, qrcodetype: qrcodetype, decoded_text: decodedText });
+                        console.log("Constructed URL: ", url);
+                        var stackSize = items.length;
+                        var listItem = $('<li/>').text(name + " ( " + stackSize + ")");
+                        $('<button/>', {
+                            text: 'This!',
+                            click: function () {
+                                $.ajax({
+                                    url: url,
+                                    type: 'POST',
+                                    headers: headers,
+                                    data: postdata,
+                                    success: function () {
+                                        $('#items-list').empty();
+                                        $('#cash-shard-creator').hide();
+                                        var message = qrcodetype == 'lock' ? name + " has been linked to the QR code." : name + " has been added to the QR code and removed from Digital Market.";
+                                        $('#message').text(message);
+                                        $('#qr-code-content').empty();
+                                    }
+                                });
+                                return false; // Prevent form submission
+                            }
+                        }).appendTo(listItem);
+                        $('#items-list').append(listItem);
+                    });
+                } else {
+                    $('#message').text(data.message || "No items available.");
+                }
+
+                if (data.qrcodetype === "inventoryadd_app" ||
+                    data.qrcodetype === "inventoryadd_file" ||
+                    data.qrcodetype === "inventoryadd_cash") {
+                    $('#cash-shard-creator').show();
+
+                } else {
+                    $('#cash-shard-creator').hide();
+                }
+            }
+        });
+    }
+
+    function onScanFailure(error) {
+        //console.warn(`QR code scan failed = ${error}`);
+    }
+
+    function setCashShard() {
+        var shardId = $('#shard-id').val();
+        var cashValue = $('#shard-amount').val();
+        var headers = {
+            'Content-type': 'application/json',
+            'Accept': 'application/json'
+        };
+        var postdata = JSON.stringify({ item_id: cashValue, item_type: "Cash", qrcodetype: "inventoryadd_cash", decoded_text: shardId });
+
+        $.ajax({
+            url: "/admin/qrmanager/set",
+            type: 'POST',
+            headers: headers,
+            data: postdata,
+            success: function () {
+                $('#items-list').empty();
+                $('#cash-shard-creator').hide();
+                var message = "Cash successfully added to qrcode";
+                $('#message').text(message);
+                $('#qr-code-content').empty();
+            }
+        });
+        return false;
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: 250 }, /* verbose= */ false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+</script>
+{% endblock %}

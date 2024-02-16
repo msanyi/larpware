@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Friend List</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Your Friends</h1>
+    <a href="{{ url_for('user_app.home') }}">Home</a>
+    <ul id="friend-list">
+        <!-- List of friends will go here, dynamically added -->
+    </ul>
+
+    <h2>Add Friend</h2>
+    <form id="add-friend-form">
+        <label for="citynet">CityNet:</label>
+        <input type="text" id="citynet" name="citynet" required>
+
+        <label for="streethandle">StreetHandle:</label>
+        <input type="text" id="streethandle" name="streethandle" required>
+
+        <button type="submit">Add Friend</button>
+    </form>
+
+    <h2>Friend Requests</h2>
+    <div id="friend-requests">
+        <!-- Friend requests will go here, dynamically added -->
+    </div>
+</body>
+<script src="friends.js"></script>
+</html>

@@ -1,0 +1,256 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Manage Digital Market{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="flash-message {{ category }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="container" style="display:flex;">
+    <!-- Left Side: Item Creation -->
+    <div class="item-creation console-text">
+        <!-- Choose the item type: App/File/Hardware -->
+        <div> UTC now is: {{ utcnow }} </div>
+        Item type chooser:
+        <select id="itemTypeSelector" class="chrome-box futuristic-text">
+            <option value="app">App</option>
+            <option value="file">File</option>
+            <option value="hardware">Hardware</option>
+        </select>
+        </br>
+        <!-- Form for App Creation (Initially visible) -->
+        <form id="appForm" action="{{ url_for('admin_app.admin_market_app.manage_market') }}" method="POST" class="chrome-box">
+            <h3 class="futuristic-text">Add Apps to Market</h3>
+            <input type="hidden" name="item_type" value="app">
+            <label for="appTypeSelect">App Type:</label>
+            <select name="app_type_id" id="appTypeSelect" class="chrome-box futuristic-text">
+                {% for app_type in app_types %}
+                <option value="{{ app_type.id }}">{{ app_type.name }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <label for="quantity">Quantity:</label>
+            <input type="number" name="quantity" id="quantity" class="chrome-box futuristic-text">
+            <br>
+            Market type:
+            <select name="market_type" class="chrome-box futuristic-text">
+                <option value="Public">Public</option>
+                <option value="Fixer">Fixer</option>
+                <option value="Darkweb" selected>Darkweb</option>
+            </select>
+            <br>
+            <label for="organizationSelect">Organizations:</label>
+            <select name="organizations" id="organizationSelect"  class="chrome-box futuristic-text" multiple>
+                {% for org in organizations %}
+                <option value="{{ org.id }}">{{ org.orgname }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <label for="price">Price:</label>
+            <input type="number" name="price" id="price" maxlength="4" class="chrome-box futuristic-text"> €$
+            <br>
+            <label for="valid_from">Valid from (UTC):</label>
+            <input type="datetime-local" name="valid_from" id="valid_from" class="chrome-box futuristic-text">
+            <br>
+            <button type="submit" class="chrome-box futuristic-text">Add App</button>
+        </form>
+
+        <!-- Form for File Creation (Initially hidden) -->
+        <form id="fileForm" action="{{ url_for('admin_app.admin_market_app.manage_market') }}" method="POST"
+            style="display:none;"  class="chrome-box">
+            <h3 class="futuristic-text">Add File to Market</h3>
+            <input type="hidden" name="item_type" value="file">
+            <label for="file_name_input" class="console-text">File Name:</label>
+            <input type="text" class="console-text chrome-box" name="file_name" id="file_name_input" class="chrome-box futuristic-text" required>
+            <br>
+            <label for="file_content_textarea" class="console-text">File Content:</label>
+            <br>
+            <textarea name="file_content" class="console-text chrome-box" id="file_content_textarea" rows="5" cols="35"
+                required></textarea>
+            <br>
+            
+            Market type:
+            <select name="market_type" class="futuristic-text chrome-box">
+                <option value="Public">Public</option>
+                <option value="Fixer">Fixer</option>
+                <option value="Darkweb">Darkweb</option>
+            </select>
+            <br>
+            <label for="organizationSelect">Organizations:</label>
+            <select class="futuristic-text chrome-box" name="organizations" id="organizationSelect" multiple>
+                {% for org in organizations %}
+                <option value="{{ org.id }}">{{ org.orgname }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <label for="price" class="console-text">Price:</label>
+            <input type="number" class="chrome-box futuristic-text" name="price" required> €$
+            <br>
+            <label for="valid_from">Valid from (UTC):</label>
+            <input type="datetime-local" name="valid_from" id="valid_from" class="chrome-box futuristic-text">
+            <br>
+            <button type="submit" class="futuristic-text chrome-box">Add File</button>
+        </form>
+
+        <!-- Start of Physical Item Creation Form -->
+        <form id="hardwareForm" action="{{ url_for('admin_app.admin_market_app.manage_market') }}" method="post"
+            style="display:none;"  class="chrome-box">
+            <h3 class="futuristic-text">Add Physical Item to Market</h3>
+            <input type="hidden" name="item_type" value="physical">
+
+            <label for="item_name">Item Name:</label>
+            <input type="text" name="item_name" id="item_name" class="chrome-box futuristic-text" required>
+            <br>
+
+            <label for="description">Description:</label>
+            <input type="text" name="description" id="description" class="chrome-box futuristic-text" required>
+            <br>
+
+            <label for="quantity">Quantity:</label>
+            <input type="number" name="quantity" id="quantity" min="1" class="chrome-box futuristic-text" required>
+            <br>
+
+            
+
+            <label for="market_type">Market Type:</label>
+            <select name="market_type" id="market_type" class="chrome-box futuristic-text">
+                <option value="Public">Public</option>
+                <option value="Fixer" selected>Fixer</option>
+                <option value="Darkweb">Darkweb</option>
+            </select>
+            <br>
+            <label for="organizationSelect">Organizations:</label>
+            <select name="organizations" id="organizationSelect"  class="chrome-box futuristic-text"multiple>
+                {% for org in organizations %}
+                <option value="{{ org.id }}">{{ org.orgname }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <label for="price">Price:</label>
+            <input type="number" name="price" id="price" min="1" class="chrome-box futuristic-text" required> €$
+            <br>
+            <label for="valid_from">Valid from (UTC):</label>
+            <input type="datetime-local" name="valid_from" id="valid_from" class="chrome-box futuristic-text">
+            <br>
+            <input type="submit" class="chrome-box futuristic-text" value="Add to Market">
+        </form>
+        <!-- End of Physical Item Creation Form -->
+        
+    </div>
+
+    <!-- Right Side: Listings -->
+    <div class="listings" style="overflow-y: scroll; max-height: 80vh;">
+        <table>
+            <thead>
+                <tr>
+                    <th data-sort="name">Name</br>
+                        <span class="sortable-icon asc">⬆️</span>
+                        <span class="sortable-icon desc">⬇️</span>
+                    </th>
+                    <th data-sort="price">Price</br>
+                        <span class="sortable-icon asc">⬆️</span>
+                        <span class="sortable-icon desc">⬇️</span>
+                    </th>
+                    <th data-sort="listing_type">Listing Type</br>
+                        <span class="sortable-icon asc">⬆️</span>
+                        <span class="sortable-icon desc">⬇️</span>
+                    </th>
+                    <th data-sort="market_type">Market Type</br>
+                        <span class="sortable-icon asc">⬆️</span>
+                        <span class="sortable-icon desc">⬇️</span>
+                    </th>
+                    <th data-sort="market_type">Valid from</br>
+                        <span class="sortable-icon asc">⬆️</span>
+                        <span class="sortable-icon desc">⬇️</span>
+                    </th>
+                    <th> Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for listing in listings %}
+                <tr>
+                    <td data-key="name">{{ listing.name }}</td> <!-- Changed to show the app type name -->
+                    <td data-key="price">{{ listing.price }}</td>
+                    <td data-key="listing_type">{{ listing.listing_type }}</td>
+                    <td data-key="market_type">{{ listing.market_type }}</td>
+                    <td data-key="valid_from">{{ listing.valid_from }}</td>
+                    <td> <form action="{{ url_for('admin_app.admin_market_app.delete_listing', item_id=listing.id) }}" method="post">
+                        <button type="submit" class="chrome-box futuristic-text">Delete</button>
+                    </form></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Dynamic show/hide based on item type selection
+        document.getElementById('itemTypeSelector').addEventListener('change', function () {
+            const selectedItem = this.value;
+            document.getElementById('appForm').style.display = (selectedItem === 'app') ? 'block' : 'none';
+            document.getElementById('fileForm').style.display = (selectedItem === 'file') ? 'block' : 'none';
+            document.getElementById('hardwareForm').style.display = (selectedItem === 'hardware') ? 'block' : 'none';
+        });
+
+
+        function sortTable(sortKey, sortOrder) {
+            const tableBody = document.querySelector('tbody');
+            const rows = Array.from(tableBody.rows);
+
+            // Comparing function
+            rows.sort((a, b) => {
+                const cellA = a.querySelector(`[data-key=${sortKey}]`).textContent;
+                const cellB = b.querySelector(`[data-key=${sortKey}]`).textContent;
+
+                if (sortOrder === 'asc') {
+                    return cellA > cellB ? 1 : -1;
+                } else {
+                    return cellA < cellB ? 1 : -1;
+                }
+            });
+
+            // Re-append sorted rows
+            rows.forEach(row => {
+                tableBody.appendChild(row);
+            });
+        }
+
+        const tableHead = document.querySelector('thead');
+        let currentSortOrder = 'asc';
+        tableHead.addEventListener('click', function (e) {
+            if (e.target.classList.contains('sortable-icon')) {
+                const parentTh = e.target.closest('[data-sort]');
+                const sortKey = parentTh.getAttribute('data-sort');
+
+                // Determine the current sort order from the clicked icon
+                currentSortOrder = e.target.classList.contains('asc') ? 'asc' : 'desc';
+
+                // Execute the sorting function
+                sortTable(sortKey, currentSortOrder);
+
+                // Toggle between 'asc' and 'desc' for the clicked column's icons
+                const icons = parentTh.querySelectorAll('.sortable-icon');
+                icons.forEach(icon => {
+                    icon.classList.toggle('asc');
+                    icon.classList.toggle('desc');
+                });
+            }
+        });
+    });
+</script>
+
+{% endblock %}

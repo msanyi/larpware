@@ -1,0 +1,278 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Users & Balances{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div class="container" style="display:flex;">
+    <dialog class="chrome-dialog" id="modify-users-dialog">
+        <h3 class="futuristic-text">Edit userenvelope assignments</h3>
+        <div id="assigned-user-container">
+            <span class="console-text chrome-box"> <button class="futuristic-text chrome-box">(X)</button></span>
+        </div>
+        <br><br>
+        <input type="hidden" id="user-envelope-id" value="">
+        <select id="user-list-selector" class="futuristic-text chrome-box">
+            <option value="" disabled selected hidden> </option>
+            {% for user in users %}
+            <option value="{{user.id}}">{{
+                user.username }}</option>
+            {% endfor %}
+        </select>
+        <button onclick="assignUser();" class="futuristic-text chrome-box">Assign</button>
+        <br><br>
+        <button onclick="closeAssignDialog();" class="futuristic-text chrome-box">Close</button>
+    </dialog>
+
+    <dialog class="chrome-dialog console-text" id="modify-envelope-dialog">
+        <h3 class="futuristic-text">Edit envelope contents</h3>
+        <input type="hidden" id="modify-envelope-id" value="">
+        <label for="modify_condition" class="console-text" >Opening condition</label><br>
+        Nyisd ki, ha <input class="chrome-box console-text" type="text" id="modify_condition"
+            name="modify_condition"><br>
+        <label for="modify_content" class="console-text">Envelope Content:</label>
+        <br>
+        <textarea name="modify_content" class="console-text chrome-box" id="modify_content" rows="6" cols="35"
+            required></textarea>
+        <br><br>
+        <button onclick="modifyEnvelope();" class="futuristic-text chrome-box">Save</button>
+        <button onclick="closeModifyDialog();" class="futuristic-text chrome-box">Cancel</button>
+    </dialog>
+
+    <div class="console-text" id="envelopeOperations">
+        <h2 class="futuristic-text">Add Envelope</h2>
+        <form action="/admin/add_envelope" method="POST" id="add-envelope-form">
+            <label for="envelope_condition">Opening condition</label><br>
+            Nyisd ki, ha <input class="chrome-box console-text" type="text" id="envelope_condition"
+                name="envelope_condition"><br>
+            <label for="envelope_content" class="console-text">Envelope Content:</label>
+            <br>
+            <textarea name="envelope_content" class="console-text chrome-box" id="envelope_content" rows="6" cols="35"
+                required></textarea>
+            <br><br>
+            <input class="large-button futuristic-text" type="submit" value="Create Envelope">
+        </form>
+    </div>
+    <div id="userlist" style="overflow-y: scroll; max-height: 80vh;">
+        <h2 class="futuristic-text">User List</h2>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Condition</th>
+                <th>Users</th>
+                <th>Content</th>
+                <th>Operations</th>
+                <th>&nbsp;</th>
+                <th>&nbsp;</th>
+
+            </tr>
+            {% for envelope in envelopes %}
+            <tr class="{{ loop.cycle('console-text', '') }}">
+                <td class="bold">{{ envelope.number }}</td>
+                <td id="env-{{envelope.id}}-condition">{{ envelope.opening_condition }}</td>
+                <td id="env-{{envelope.id}}-userlist">
+                    {% for user in envelope.users %}
+                    <div class="env-{{envelope.id}}-user {{'bold' if user.isopen}}" data-userid="{{user.id}}">{{user.username}} </div>
+                    {% endfor %}
+                <td id="env-{{envelope.id}}-content">{{ envelope.content }}</td>
+                <td> <button class="chrome-box console-text" onclick="showAssignDialog('{{envelope.id}}');">Modify
+                        assignment</button> </td>
+                <td> <button class="chrome-box console-text" onclick="showModifyDialog('{{envelope.id}}');">Edit
+                        envelope</button> </td>
+                <td>
+                    <button onclick="deleteEnvelope('{{envelope.id}}');" class="chrome-box futuristic-text">Delete envelope</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block script %}
+<script>
+    // Wait for the document to be fully loaded
+    $(document).ready(function () {
+        // Intercept the "Add User" form submission
+        $("#add-envelope-form").submit(function (event) {
+            // Prevent the default form submission behavior
+            event.preventDefault();
+
+            // Gather the form data and convert it to JSON format
+            var formData = {
+                'condition': $("#envelope_condition").val(),
+                'content': $("#envelope_content").val()
+            };
+
+            // Send the data as an AJAX POST request
+            $.ajax({
+                type: "POST",
+                url: "/admin/envelopes/create",
+                data: JSON.stringify(formData),
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.error) {
+                        alert(response.error);
+                    } else {
+                        location.reload(); // Reload the page to see the updated user list
+                    }
+                },
+                error: function (response) {
+                    alert("An error occurred: " + response.responseText);
+                }
+            });
+        });
+    });
+
+    const userAssignDialog = document.getElementById("modify-users-dialog");
+    const modifyEnvelopeDialog = document.getElementById("modify-envelope-dialog");
+
+    function showAssignDialog(envelope_id) {
+        $("#user-envelope-id").val(envelope_id);
+        $("#assigned-user-container").empty();
+        $(`.env-${envelope_id}-user`).each(
+            function () {
+                console.log($(this));
+                const userId = $(this).attr("data-userid");
+                const userName = $(this).text();
+                console.log(userId, userName);
+                addTagToDialog(userId, userName);
+            }
+        )
+        userAssignDialog.showModal();
+    }
+
+    function addTagToDialog(userId, userName) {
+        console.log("adding user tag for", userId, "name", userName)
+        const userTag = document.createElement('span');
+        userTag.classList.add('console-text');
+        userTag.classList.add('chrome-box');
+        userTag.innerText = userName;
+        const removeButton = document.createElement('button');
+        removeButton.classList.add('futuristic-text');
+        removeButton.classList.add('chrome-box');
+        removeButton.innerHTML = '(X)'
+        removeButton.addEventListener('click', function () {
+            deassignUser(userId);
+            userTag.remove();
+        })
+        userTag.appendChild(removeButton);
+        document.getElementById("assigned-user-container").appendChild(userTag);
+    }
+
+    function assignUser() {
+        envelope_id = $("#user-envelope-id").val();
+        user_id = $("#user-list-selector").val();
+        user_name = $("#user-list-selector :selected").text();
+
+        $.ajax({
+            url: `/admin/envelopes/assign/${envelope_id}`,
+            type: 'POST',
+            data: JSON.stringify({
+                user: user_id
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+                $("#user-list-selector").val("");
+                if (response.success) {
+                    addTagToDialog(user_id, user_name);
+
+                    userSpan = document.createElement("div");
+                    userSpan.id = `env-${envelope_id}-user`;
+                    userSpan.setAttribute("data-userid", user_id);
+                    userSpan.innerText = user_name;
+                    document.getElementById(`env-${envelope_id}-userlist`).appendChild(userSpan);
+                } else {
+
+                }
+            }
+        });
+    }
+
+    function deassignUser(userId) {
+        envelope_id = $("#user-envelope-id").val();
+        console.log("deassign user", userId, "from", envelope_id)
+        $.ajax({
+            url: `/admin/envelopes/deassign/${envelope_id}`,
+            type: 'POST',
+            data: JSON.stringify({
+                user: userId
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+                if (response.success) {
+                    $(`#env-${envelope_id}-userlist`).find(`[data-userid='${userId}']`).remove();
+                } else {
+
+                }
+            }
+        });
+    }
+
+    function closeAssignDialog() {
+        userAssignDialog.close()
+    }
+
+    function showModifyDialog(envelope_id) {
+        $("#modify-envelope-id").val(envelope_id);
+        $("#modify_condition").val($(`#env-${envelope_id}-condition`).text());
+        $("#modify_content").val($(`#env-${envelope_id}-content`).text());
+        modifyEnvelopeDialog.showModal();
+    }
+
+    function modifyEnvelope() {
+        envelope_id = $("#modify-envelope-id").val();
+        envelope_condition = $("#modify_condition").val();
+        envelope_content = $("#modify_content").val();
+
+        $.ajax({
+            url: `/admin/envelopes/update/${envelope_id}`,
+            type: 'POST',
+            data: JSON.stringify({
+                condition: envelope_condition,
+                content: envelope_content
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+                $("#user-list-selector").val("");
+                if (response.success) {
+                    $(`#env-${envelope_id}-condition`).text(envelope_condition)
+                    $(`#env-${envelope_id}-content`).text(envelope_content)
+                    closeModifyDialog();
+                } else {
+
+                }
+            }
+        });
+    }
+
+    function closeModifyDialog() {
+        modifyEnvelopeDialog.close()
+    }
+
+    function deleteEnvelope(envelope_id) {
+        if (confirm("Do you really want to delete this envelope?")) {
+            
+            $.ajax({
+                type: "POST",
+                url: `/admin/envelopes/delete/${envelope_id}`,
+                success: function (response) {
+                    if (response.error) {
+                        alert(response.error);
+                    } else {
+                        location.reload(); // Reload the page to see the updated user list
+                    }
+                },
+                error: function (response) {
+                    alert("An error occurred: " + response.responseText);
+                }
+            });
+        }
+        
+    }
+
+</script>
+{% endblock %}

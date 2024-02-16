@@ -1,0 +1,26 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Welcome to CityNet!{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div class="flex-container">
+    
+        <div class="chrome-box futuristic-text menu-button"><a class="hoverglitch" href="{{ url_for('user_app.inventory_app.show_inventory') }}" data-text="Inventory" >Inventory</a></div>
+        <div class="chrome-box futuristic-text menu-button"><a class="hoverglitch" href="{{ url_for('user_app.messaging_app.messages_page') }}" data-text="Messages" >Messages</a>
+        </div>
+        <div class="chrome-box futuristic-text menu-button"><a class="hoverglitch" href="{{ url_for('user_app.boards_app.boards_page') }}" data-text="Boards" >Boards</a></div>
+        <div class="chrome-box futuristic-text menu-button"><a class="hoverglitch" href="{{ url_for('user_app.account') }}" class="futuristic-text" data-text="Contacts">Contacts</a></div>
+        <div class="chrome-box futuristic-text menu-button"><a class="hoverglitch" href="{{ url_for('user_app.client_market_app.show_market') }}" data-text="Digital Market">Digital Market</a>
+        </div>
+        <div class="chrome-box futuristic-text menu-button"><a class="hoverglitch" href="{{ url_for('user_app.scanner_redirect') }}" data-text="Scanner">Scanner</a></div>
+</div>
+
+<div class="chrome-box console-text">
+    OFFGAME:<br/>
+    <a class="hoverglitch" href="{{ url_for('user_app.envelopes_app.envelopes_page') }}" data-text="Envelopes">Envelopes ({{unopenedEnvelopeCount}}/{{envelopeCount}})</a>&nbsp;| 
+    <a class="hoverglitch" href="{{ url_for('user_app.user_settings_app.user_settings') }}" data-text="Settings">Settings</a>
+</div>
+{% endblock %}

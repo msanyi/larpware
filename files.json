@@ -1,0 +1,6 @@
+[
+    {
+        "title":"Béci programozni tanul",
+        "content":"Egy teljes szoftverfejlesztési ciklus során elvégzendő tevékenységek általában különböző jellegűek, például a kezdeti fázisokban a tervezés során sokszor magasabb absztrakciókban gondolkodunk, míg a fejlesztési ciklus végére konkrét implementáció szintű problémákat kell megoldani.\n\nObjektumorientált rendszerek fejlesztésére különösen jellemző, hogy az analízis szintű gondolkodást kiegészíti a tervezés szintű gondolkodás.\n\n Egy szoftver fejlesztésének korai fázisaiban a megvalósítandó rendszer feladatait szeretnénk feltérképezni, azok funkcionális és egyéb jellegű követelményeivel. Más szóval, az analízis szintű megközelítésben a kérdés ilyenkor az, hogy a rendszernek mit kellene tennie. Ilyenkor határozzuk meg a szoftver (formális és informális) specifikációját, majd abból kiindulva kezdjük magasabb szintű absztrakciók segítségével előállítani a rendszer modelljét, amely a konkrét megvalósítás alapját fogja képezni."
+    }
+]

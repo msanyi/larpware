@@ -1,0 +1,29 @@
+[
+  {
+    "number": 1,
+    "opening_condition": "Condition for opening envelope 1",
+    "content": "Content of envelope 1",
+    "user_envelopes": [
+      {
+        "user_id": 15,
+        "opened": false
+      },
+      {
+        "user_id": 16,
+        "opened": false
+      }
+    ]
+  },
+  {
+    "number": 2,
+    "opening_condition": "Condition for opening envelope 2",
+    "content": "Content of envelope 2",
+    "user_envelopes": [
+      {
+        "user_id": 15,
+        "opened": false
+      }
+    ]
+  }
+]
+

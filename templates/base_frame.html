@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" data-color-theme="{{headerinfo.theme}}">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
+    {% block style %}{% endblock %}
+    <title>{% block title %}{% endblock %} - FLAT/LINE CityNet</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+
+<nav class="nav-bar">
+    <div class="nav-home futuristic-text">
+        <a class="hoverglitch" href="{{url_for('user_app.home')}}" data-text="CityNet">CityNet</a> | {{
+        headerinfo.username }}
+    </div>
+    {% if headerinfo.messageCount > 0 %}
+    <div class="futuristic-text"> &nbsp;| <a class="hoverglitch" data-text="{{headerinfo.messageCount}}&#9993;"
+            href="{{ url_for('user_app.messaging_app.messages_page') }}">{{headerinfo.messageCount}}&#9993; </a>
+    </div>
+    {% endif %}
+    {% if headerinfo.boardCount > 0 %}
+    <div class="futuristic-text"> &nbsp;| <a class="hoverglitch" data-text="{{headerinfo.boardCount}}&#9998;"
+            href="{{ url_for('user_app.boards_app.boards_page') }}">{{headerinfo.boardCount}}&#9998; </a></div>
+    {% endif %}
+    <div class="wound-tracker futuristic-text">
+        {% if headerinfo.healthState == "unhurt" %}
+        &nbsp;| <span class="wound-unhurt"><a class="hoverglitch wound-unhurt" data-text="OK"
+            href="{{ url_for('user_app.health_monitor_app.health_monitor') }}">OK</a></span>
+        {% elif headerinfo.healthState == "wounded" %}
+        &nbsp;| <span class="wound-wounded"><a class="hoverglitch wound-wounded" data-text="WOUNDED"
+            href="{{ url_for('user_app.health_monitor_app.health_monitor') }}">WOUNDED</a></span>
+        {% elif headerinfo.healthState == "dying" %}
+        &nbsp;| <span class="wound-dying"><a class="hoverglitch wound-dying" data-text="DYING"
+            href="{{ url_for('user_app.health_monitor_app.health_monitor') }}">DYING</a></span>
+        {% elif headerinfo.healthState == "dead" %}
+        &nbsp;| <span class="wound-dead"><a class="hoverglitch wound-dead" data-text="FLATLINED"
+            href="{{ url_for('user_app.health_monitor_app.health_monitor') }}">FLATLINED</a></span>
+        {% endif %}
+    </div>
+
+</nav>
+<section class="content">
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% block content %}{% endblock %}
+</section>
+
+{% block script %}{% endblock %}
+
+</html>

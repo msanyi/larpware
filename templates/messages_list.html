@@ -1,0 +1,157 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Messages{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
+<!-- Adding some chrome effects to the buttons -->
+<button id="open-composer-button" onclick="openComposer()" class="futuristic-text chrome-box">Compose message</button>
+<button id="close-composer-button" onclick="closeComposer()" class="futuristic-text chrome-box"
+    style="display:none">Close (X)</button>
+<div id="compose-message-section" class="message-section chrome-box">
+    <!-- Styling input elements with chrome-box -->
+    <div class="console-text">To: <select id="friend-list-selector" class="chrome-box futuristic-text"
+            onchange="if (this.selectedIndex > -1) { selectRecipient(this.options[this.selectedIndex].value); }">
+            <option value="" disabled selected hidden> </option>
+            {% for friend in friends %}
+            <option value="{{friend.username}}">{{
+                friend.username }}</option>
+            {% endfor %}
+        </select><span id="message-recipient" class="futuristic-text"></span>
+        <button id="unselectButton" onclick="unselectRecipient()" class="futuristic-text chrome-box"
+            style="display:none;">X</button>
+    </div>
+    <label for="message-content" class="console-text">Message:<br /></label>
+    <textarea id="message-content" class="console-text chrome-box" maxlength=300 rows="7" cols="45"
+        oninput="countCharacters('message-content', 'char-counter')"></textarea>
+    <p class="console-text">Remaining length: <span id="char-counter">300</span></p>
+    <button onclick="sendMessage()" class="futuristic-text chrome-box">Send</button>
+    <p id="message-status" class="futuristic-text"></p>
+</div>
+
+<div id="messages-list-section">
+    
+</div>
+
+
+{% if success_message %}
+<script>
+    alert('{{ success_message }}');
+</script>
+{% endif %}
+
+<script>
+
+    var lastRefreshedAt = 0;
+    var messagePollingInterval = setInterval(function () {
+        console.log("calling regular poll interval")
+        $.get(`/messages/poll-cards?since=${lastRefreshedAt}`, function (data) {
+            if (data.reload_required == true) {
+                loadMessages();
+            }
+        });
+    }, 5000)
+
+    $(document).ready(function () {
+        loadMessages();
+    })
+
+    function loadMessages() {
+        $.get('/messages/load-cards', function (data) {
+            let messageList = $('#messages-list-section');
+            messageList.empty();  // Clear any previous items
+            lastRefreshedAt = data.loaded;
+            data.messages.forEach(message => {
+                if (message.sender_name === '{{username}}') {
+                    //you sent the last message
+                    messageList.append(`<div class="chrome-box hover-glitch-border">
+            <div class="futuristic-text ${message.unreads > 0 ? " bold" : ""}">${message.receiver_name} ${message.unreads > 0 ? `(${message.unreads})` : ""}</div>
+                <div class="console-text ${message.unreads > 0 ? " bold" : ""}">
+                You: ${message.message_content}
+                </div>
+                <a href="/messages/${message.receiver_id}"><span class="linkbox"></span></a>
+            </div>`)
+                } else {
+                    //contact sent the last message
+                    messageList.append(`<div class="chrome-box hover-glitch-border">
+            <div class="futuristic-text ${message.unreads > 0 ? " bold" : ""}">${message.sender_name} ${message.unreads > 0 ? `(${message.unreads})` : ""}</div>
+                <div class="console-text ${message.unreads > 0 ? " bold" : ""}">
+                ${message.message_content}
+                </div>
+                <a href="/messages/${message.sender_id}"><span class="linkbox"></span></a>
+            </div>`)
+                }
+            });
+        });
+    }
+
+
+
+    function openComposer() {
+        document.getElementById('open-composer-button').style.display = 'none';
+        document.getElementById('close-composer-button').style.display = 'block';
+        document.getElementById('compose-message-section').style.display = 'block';
+    }
+
+    function closeComposer() {
+        document.getElementById('open-composer-button').style.display = 'block';
+        document.getElementById('close-composer-button').style.display = 'none';
+        document.getElementById('compose-message-section').style.display = 'none';
+    }
+
+    function selectRecipient(username) {
+        console.log("selectRecipient called with argument: " + username);  // Log when the function is called.
+        document.getElementById('message-recipient').textContent = username;
+        document.getElementById('friend-list-selector').style.display = "none";
+        document.getElementById('unselectButton').style.display = "inline-block";
+    }
+
+    function unselectRecipient() {
+        document.getElementById('message-recipient').textContent = "";
+        document.getElementById('friend-list-selector').value = "";
+        document.getElementById('friend-list-selector').style.display = "inline-block";
+        document.getElementById('unselectButton').style.display = "none";
+
+    }
+
+    function sendMessage() {
+        console.log("sendMessage called.");  // Log when the function is called.
+        const recipient = document.getElementById('message-recipient').textContent;
+        const content = document.getElementById('message-content').value;
+
+        if (!recipient || !content) {
+            document.getElementById('message-status').textContent = 'Both recipient and content are required.';
+            return;
+        }
+
+        const data = new FormData();
+        data.append('receiver_username', recipient);
+        data.append('message', content);
+
+        fetch('/send_message', {
+            method: 'POST',
+            body: data,
+        }).then(response => response.json()).then(data => {
+            document.getElementById('message-status').textContent = data.message || data.error;
+            document.getElementById('message-content').value = '';
+            unselectRecipient();
+            setTimeout(location.reload(), 1000);
+        }).catch(error => {
+            document.getElementById('message-status').textContent = 'Error: ' + error;
+        });
+    }
+
+    // Function to count characters in the input field
+    function countCharacters(inputId, counterId) {
+        const maxLength = 300;
+        const inputField = document.getElementById(inputId);
+        const currentLength = inputField.value.length;
+        const remaining = maxLength - currentLength;
+        document.getElementById(counterId).textContent = remaining.toString();
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends 'base_frame.html' %}
+
+{% block title %}Health Monitor{% endblock %}
+{% block style %}
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='heart_monitor.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="centered chrome-box">
+    <div class="console-text">Your current status is</div>
+    <div class="xx-large bold wound-{{health}}"> {{display_state}} </div>
+    <div class="wound-{{health}}">
+        {% if health == "unhurt" %}
+        Vital signs nominal.
+        {% elif health == 'wounded' %}
+        Serious injury detected.
+        {% elif health == 'dying' %}
+        Immediate medical attention required.
+        {% elif health == 'dead' %}
+        Vital signs ceased.
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="container">
+    <div class="grid">
+        <div class="col-10_sm-12 graph" data-state="{{health}}">
+            <div class="cell cell-1" data-state="{{health}}"></div>
+            <div class="cell cell-2" data-state="{{health}}"></div>
+            <div class="cell cell-3" data-state="{{health}}"></div>
+            <div class="cell cell-4" data-state="{{health}}"></div>
+            <div class="cell cell-5" data-state="{{health}}"></div>
+            <div class="cell cell-6" data-state="{{health}}"></div>
+        </div>
+    </div>
+</div>
+
+<div class="flex-container">
+    {% if health != "dead" %}
+    <form action="{{ url_for('user_app.health_monitor_app.decrease_health_state') }}" method="post">
+        <button type="submit" class="chrome-box large futuristic-text">Worsen<br>condition</button>
+    </form>
+    {% endif %}
+    {% if health != "unhurt" %}
+    <form action="{{ url_for('user_app.health_monitor_app.increase_health_state') }}" method="post">
+        <button type="submit" class="chrome-box large futuristic-text">Improve<br>condition</button>
+    </form>
+    {% endif %}
+</div>
+
+<div class="flex-container chrome-box">
+    <div>
+        <div class="large bold futuristic-text centered">
+            ARMOR
+        </div>
+        <div class="flex-container">
+            <button onclick="decreaseArmor()" class="large chrome-box futuristic-text bold"
+                style="float:right;">&nbsp;-&nbsp;</button>
+            <div id="armor-value" class="xx-large futuristic-text">{{armor}}</div>
+            <button onclick="increaseArmor()" class="large chrome-box futuristic-text bold"
+                style="float:right;">&nbsp;+&nbsp;</button>
+        </div>
+    </div>
+
+    <div>
+        <div class="large bold futuristic-text centered">
+            REFLEX
+        </div>
+        <div class="flex-container">
+            <button onclick="decreaseReflex()" class="large chrome-box futuristic-text bold"
+                style="float:right;">&nbsp;-&nbsp;</button>
+            <div id="reflex-value" class="xx-large futuristic-text">{{reflex}}</div>
+            <button onclick="increaseReflex()" class="large chrome-box futuristic-text bold"
+                style="float:right;">&nbsp;+&nbsp;</button>
+        </div>
+    </div>
+</div>
+
+<div class="chrome-box">
+    <div class="futuristic-text">OFFGAME:</div>
+    <div class="console-text">
+        {% if health == "unhurt" %}
+        <p>Alapesetben <b>sértetlen</b> állapotú vagy, egészen addig, amíg nem kapsz egy érvényes találatot...</p>
+        {% elif health == 'wounded' %}
+        <p>Az első érvényes találattól <b>sebesült</b> leszel. Megtántorodsz, fedezékbe dőlsz, a találat helye ha végtag
+            akkor használhatatlan, ha nem végtag akkor egyik kezeddel próbálod fogni amikor csak lehet. Ekkor még
+            próbálkozhatsz további harccal.</p>
+        <p>Húsz másodperc megszakítás nélkül eljátszott elsősegélyezéssel a sérülésed ellátható. a sebed kevésbé fog
+            akadályozni. Ugyan kicsit továbbra is esetlenül, de a végtagot használhatod, illetve fognod sem kell a
+            sérülés helyét. Fontos azonban, hogy attól még ugyanúgy sebesült maradsz.</p>
+        <p>Egy képzett orvos karakater legalább két perc eljátszott kezeléssel szakszerűen elláthat. Ez ugyanazokat az
+            előnyöket biztosítja, mintha elsősegélyben részesültél volna, ezen felül ha így ellátottva még fél órát
+            pihensz, melynek során nem végzel semmi, a sétánál vagy beszélgetésnél megerőltetőbb tevékenységet,
+            sértetlen állapotúra gyógyulsz.</p>
+        <p>Bárhogy is alakul, a következő találattól <b>haldokló</b> leszel.</p>
+        {% elif health == 'dying' %}
+        <p>Sebesült állapotban a következő találattól <b>haldokló</b> leszel és a földre kerülsz. Magatehetetlen és
+            védekezésre képtelen vagy, lőni sem vagy képes, maximum kúszni tudsz és egy percen belül - hacsak nem
+            kezdenek el ellátni - elvérzel.</p>
+        <p>Ha elsősegélyben részesítettek, az csak elodázza az elkerülhetetlent: ugyanúgy haldokló maradsz, de a
+            normális egy perc helyett öt perc múlva fogsz meghalni. Az ellátások ideje nem számít bele a halálod
+            beálltáig tartó visszaszámlálásba.</p>
+        <p>Képzett orvos karakterek egy klinikán két perc eljátszott ellátással az állapotodat <b>sebesült</b>re
+            javíthatják, és fél óra pihenés után sértetlenre gyógyulsz.</p>
+        <p>Amíg haldokló állapotban vagy, következő találattól <b>halott</b> leszel.</p>
+        {% elif health == 'dead' %}
+        <p>Ha sikerül elérned a halott állapotot, először is gratulálunk, másrészt ami ezután történik, attól függ, hol
+            tart a játék.</p>
+        <p><b>Alapesetben ha “halott” állapotba is kerülsz, nem fogsz végleg meghalni, ilyet ne is várjatok el
+                egymástól.</b> Ahhoz, hogy ne teremtsünk ezzel visszás helyzeteket, ne csináljatok olyat amivel
+            “biztosra mennétek” abban hogy megöltetek valakit - plusz kivégezgetés helyett inkább lépjetek le a
+            helyszínről “mielőtt jön az erősítés”. Kifoszthatnak, elvihetnek, helyrepofozhatnak, stb, de ha nem
+            foglalkoznak veled külön, akkor kezeld úgy, hogy valaki “offscreen” (Trauma Team, a bandád zugdokija, vagy
+            simán csak a haverjaid) összekapart, és fél óra elteltével “sebesült” állapotban folytathatod a játékot egy
+            olyan helyen, amit ésszerűnek gondolsz arra, hogy ott “térj magadhoz”.</p>
+        <p><b>Ez a játék utolsó szakaszában meg fog változni.</b> A játékkezdéskor ismertetni fogjuk, hogy miről
+            ismeritek majd meg az eszkaláció bekövetkeztét: minden olyan halál, ami ezután kezdődő konfliktusból
+            következik, végleges és visszavonhatatlan.</p>
+        {% endif %}
+    </div>
+</div>
+
+<svg width="0" height="0" class="filters">
+    <defs>
+        <filter id="filter0_dd" x="0.858887" y="28.9809" width="644.262" height="124.108" filterUnits="userSpaceOnUse"
+            color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+            <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+            <feOffset />
+            <feGaussianBlur stdDeviation="2" />
+            <feColorMatrix type="matrix" values="0 0 0 0 0.215686 0 0 0 0 0.686275 0 0 0 0 0.54902 0 0 0 1 0" />
+            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow" />
+            <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+            <feOffset />
+            <feGaussianBlur stdDeviation="4" />
+            <feColorMatrix type="matrix" values="0 0 0 0 0.215686 0 0 0 0 0.686275 0 0 0 0 0.54902 0 0 0 1 0" />
+            <feBlend mode="normal" in2="effect1_dropShadow" result="effect2_dropShadow" />
+            <feBlend mode="normal" in="SourceGraphic" in2="effect2_dropShadow" result="shape" />
+        </filter>
+
+
+    </defs>
+</svg>
+{% endblock %}
+
+{% block script %}
+<script>
+    function increaseArmor() {
+        armorValue = parseInt($('#armor-value').text());
+        reflexValue = parseInt($('#reflex-value').text());
+        armorValue += 1;
+        $('#armor-value').text((armorValue).toString());
+        setArmorReflex(armorValue, reflexValue);
+    }
+    function decreaseArmor() {
+        armorValue = parseInt($('#armor-value').text());
+        reflexValue = parseInt($('#reflex-value').text());
+
+        if (armorValue > 0) {
+            armorValue -= 1
+            $('#armor-value').text((armorValue).toString());
+            setArmorReflex(armorValue, reflexValue);
+        }
+    }
+    function increaseReflex() {
+        armorValue = parseInt($('#armor-value').text());
+        reflexValue = parseInt($('#reflex-value').text());
+        reflexValue += 1;
+        $('#reflex-value').text((reflexValue).toString());
+        setArmorReflex(armorValue, reflexValue);
+    }
+    function decreaseReflex() {
+        armorValue = parseInt($('#armor-value').text());
+        reflexValue = parseInt($('#reflex-value').text());
+
+        if (reflexValue > 0) {
+            reflexValue -= 1;
+            $('#reflex-value').text((reflexValue).toString());
+            setArmorReflex(armorValue, reflexValue);
+        }
+    }
+
+    function setArmorReflex(armorValue, reflexValue) {
+        $.ajax({
+            url: '/health/set',
+            type: 'POST',
+            data: JSON.stringify({
+                armor: armorValue,
+                reflex: reflexValue
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+            }
+        });
+    }
+</script>
+{% endblock %}

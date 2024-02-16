@@ -1,0 +1,20 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Admin Home{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+    <p>Use the links below to manage different aspects of the application:</p>
+    <ul>
+        <li><a href="{{ url_for('admin_app.admin') }}">Manage Users and Balances</a></li>
+        <li><a href="{{ url_for('admin_app.admin_network_creator') }}">Create Network</a></li>
+        <li><a href="{{ url_for('admin_app.admin_netmod_app.network_modifier') }}">Modify Network</a></li>
+        <li><a href="{{ url_for('admin_app.admin_market_app.manage_market') }}">Create Items for Digital Market</a></li>
+        <li><a href="{{ url_for('admin_app.admin_couriertasks.list_tasks') }}">Manage courier orders</a></li>
+        <li><a href="{{ url_for('admin_app.admin_qrmanager_app.admin_qrmanager') }}">QR setter</a></li>
+        <li><a href="{{ url_for('admin_app.admin_envelopes.envelopes') }}">Manage envelopes</a></li>
+        <li><a href="{{ url_for('admin_app.admin_messaging_app.messages_page') }}">NPC Messaging</a></li>
+    </ul>
+{% endblock %}

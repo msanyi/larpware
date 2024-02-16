@@ -1,0 +1,265 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<div class="futuristic-text"><a class="hoverglitch" data-text="Back to Boards"
+    href="{{ url_for('user_app.boards_app.boards_page') }}"> <-- Back to Boards</a>
+</div>
+<h1 class="futuristic-text">{% block title %}{{board_name}}{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div id="postCreation" class="console-text">
+    <textarea id="postContent" class="chrome-box console-text" rows=6 cols=45
+        placeholder="Type your post..."></textarea>
+    <br />
+    <select id="fileSelector" class="console-text chrome-box"></select>
+    <button id="postButton" class="large-button futuristic-text">Post</button>
+</div>
+<div id="notificationArea" style="display: none;" class="chrome-box">
+    <p id="notificationMessage" class="futuristic-text"></p>
+</div>
+<div id="postsContainer" class="posts-container">
+    {% for post in posts %}
+    <div class="post console-text chrome-box" data-post-id="{{post.id}}" data-user-has-seen={{post.user_has_seen}}>
+        <div class="post-header futuristic-text">{{post.user}}
+            {% if post.user_reacted == False%}
+            <button id="dislike-{{post.id}}" class="dislike-btn chrome-box futuristic-text bold" style="float:right;">&nbsp;-&nbsp;</button>
+            <button id="like-{{post.id}}" class="like-btn chrome-box futuristic-text bold" style="float:right;">&nbsp;+&nbsp;</button>
+            {% endif %}</div>
+        <div class="post-content console-text">{{post.content}}</div>
+        {% if post.file %}
+        <div class="file-content chrome-box">
+            <div class="futuristic-text">FILE: {{post.file.name}}</div>
+            {% if post.file.copied_by %}
+            <div class="console-text"> Owner: {{post.file.original_owner.username if post.file.original_owner else
+                'Unknown'}}, copied by: {{post.file.copied_by.username}}</div>
+            {% else %}
+            <div class="console-text"> Owner: {{post.file.original_owner.username if post.file.original_owner else
+                'Unknown'}}</div>
+            {% endif %}
+            <div class="console-text file-content">Content:<br/>{{post.file.content|safe}}</div> 
+        </div>`
+        {% endif %}
+        <div class="reaction-buttons x-small">
+            
+            Seen: <span class="seen-count" data-seen-count-id="{{post.id}}">{{post.seen_count}}</span> |
+            Liked: <span class="like-count" data-like-count-id="{{post.id}}">{{post.like_count}}</span> |
+            Disliked: <span class="dislike-count" data-dislike-count-id="{{post.id}}">{{post.dislike_count}}</span> |
+            Posted at: <span class="posted-at" data-posted-at="{{post.id}}"> {{post.posted_at}}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<div class="pagination console-text centered">
+    {% if pages.has_prev %}
+    <span>
+        <a class='page-number futuristic-text'
+            href="{{url_for('user_app.boards_app.get_board', board_id=board_id, page=pages.prev_num) }}">
+            {{ '<<<' }} </a>
+    </span>
+    {% endif %}
+
+    {% for page in range(1, pages.total+1): %}
+    {% if pages.page != page %}
+    <span>
+        <a class='page-number futuristic-text'
+            href="{{url_for('user_app.boards_app.get_board', board_id=board_id, page=page) }}">
+            {{ page }}
+        </a>
+    </span>
+    {% else %}
+    <span class='current-page-number'>{{ page }}</span>
+    {% endif %}
+    {% endfor %}
+
+    {% if pages.has_next %}
+    <span>
+        <a class='page-number futuristic-text'
+            href="{{url_for('user_app.boards_app.get_board', board_id=board_id, page=pages.next_num) }}">
+            {{ '>>>' }}
+        </a>
+    </span>
+    {% endif %}
+</div>
+
+
+{% endblock %}
+
+{% block script %}
+<script>
+    var userId = {{ user_id }};
+    let observer = new IntersectionObserver(handleIntersection);
+
+    $(document).ready(function () {
+
+        // Start observing each post when it's added to the DOM
+        $(".post").each((index, postElement) => {
+            if($(postElement).attr('data-user-has-seen') != "True") {
+                observer.observe(postElement);
+            }
+        });
+
+        $(".post-content").each((index, postContentElement) => {
+            postContentElement.innerHTML = linkify(postContentElement.innerHTML);
+        });
+        $(".file-content").each((index, fileContentElement) => {
+            fileContentElement.innerHTML = linkify(fileContentElement.innerHTML);
+        });
+
+        $.get(`/api/user/files`, function (data) {
+            let fileSelector = $('#fileSelector');
+            fileSelector.empty();  // Clear any previous items
+            fileSelector.append(`<option value="">No file selected</option>`);
+            data.files.forEach(file => {
+                fileSelector.append(`<option value="${file.id}">${file.name}</option>`);
+            });
+        });
+    })
+
+    // external links handling from pure text links in database -> into external links
+    function linkify(inputText) {
+        let replacedText, replacePattern1, replacePattern2, replacePattern3;
+
+        //URLs starting with http://, https://, or ftp://
+        replacePattern1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+        replacedText = inputText.replace(replacePattern1, '<a href="$1" target="_blank">$1</a>');
+
+        //URLs starting with www. (without // before it, or it'd re-link the ones done above)
+        replacePattern2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim;
+        replacedText = replacedText.replace(replacePattern2, '$1<a href="http://$2" target="_blank">$2</a>');
+
+        return replacedText;
+    }
+
+    $('#postButton').on('click', function () {
+        // Get the content from the text area
+        let postContent = $('#postContent').val();
+
+        // Get the selected file ID
+        let fileId = $('#fileSelector').val();
+
+        // Check if neither text content nor file is provided
+        if (!postContent && !fileId) {
+            alert('Please provide either text content or select a file.');
+            return;
+        }
+
+        // Get the current board ID
+        let boardId = '{{board_id}}'
+
+        // Initialize the payload object
+        let payload = {
+            board_id: boardId
+        };
+
+        // Determine the content of the post based on the inputs provided
+        if (postContent) {
+            payload.content = postContent;
+        }
+
+        if (fileId) {
+            payload.file_id = fileId;
+        }
+
+        console.log('Sending Payload:', payload);
+        // Make an AJAX POST request to create a new post
+        $.ajax({
+            url: '/api/boards/post',
+            type: 'POST',
+            data: payload,
+            success: function (response) {
+                if (response.success) {
+                    // Handle the successful creation of the post
+                    // e.g., reload the posts or show a notification
+                    alert('Post created successfully!');
+                    location.reload();
+                } else {
+                    // Handle the error response from the server
+                    alert('Failed to create post: ' + response.message);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                // Handle other errors like network errors, server not reachable, etc.
+                alert('Error: ' + textStatus + ': ' + errorThrown);
+            }
+        });
+    });
+
+    function showNotification(message) {
+        $('#notificationMessage').text(message);
+        $('#notificationArea').show();
+
+        setTimeout(function () {
+            $('#notificationArea').hide();
+        }, 5000);  // Hide the notification after 5 seconds
+    }
+
+    function handleReaction(postID, reactionType) {
+        $.ajax({
+            type: 'POST',
+            url: `/api/posts/${postID}/reaction`,
+            contentType: 'application/json',   // Set content type to JSON
+            data: JSON.stringify({ type: reactionType }),   // Convert the data to a JSON string
+            success: function (response) {
+                if (response.success) {
+                    let postElement = $(`[data-post-id="${postID}"]`);
+                    postElement.find(`.${reactionType}-count`).text(parseInt(postElement.find(`.${reactionType}-count`).text()) + 1);
+                    postElement.find('.like-btn, .dislike-btn').hide();
+                    console.log(response.message);
+                } else {
+                    showNotification(response.message);
+                    console.error(response.message);
+                }
+            },
+            error: function (error) {
+                console.error('Error adding reaction:', error);
+            }
+        });
+    }
+
+    $(document).on('click', '.like-btn, .dislike-btn', function () {
+        const postID = $(this).closest('.post').attr('data-post-id');
+        const reactionType = $(this).hasClass('like-btn') ? 'like' : 'dislike';
+        handleReaction(postID, reactionType);
+    });
+
+    // Define a function to handle the intersection
+    function handleIntersection(entries, observer) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                let postId = $(entry.target).attr("data-post-id");
+                let timer = setTimeout(() => {
+                    // Mark post as seen after 3 seconds
+                    markPostAsSeen(postId);
+                    observer.unobserve(entry.target);  // Stop observing the post after it's marked as seen
+                }, 3000);
+
+                // Store the timer ID on the post element so it can be cleared if needed
+                $(entry.target).data("seenTimer", timer);
+            } else {
+                // Clear the timer if the post leaves the viewport before 3 seconds
+                clearTimeout($(entry.target).data("seenTimer"));
+            }
+        });
+    }
+
+    // Create a new Intersection Observer instance
+
+
+    function markPostAsSeen(postId) {
+        $.post(`/api/posts/${postId}/mark-seen`, function (response) {
+            if (response.success) {
+                let postElement = $(`[data-post-id="${postId}"]`);
+                let seenCountElement = postElement.find(".seen-count");
+                seenCountElement.text(parseInt(seenCountElement.text()) + 1);
+            }
+        });
+    }
+
+    $('#refreshButton').on('click', function () {
+        location.reload();
+    });
+
+</script>
+{% endblock %}

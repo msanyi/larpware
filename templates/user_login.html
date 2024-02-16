@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-color-theme="console-green">
+
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login</title>
+</head>
+
+<body class="chrome-box">
+
+    <h1 class="futuristic-text">User Login</h1>
+
+    <form method="POST" class="console-text">
+        <label for="username" class="small">Username:</label><br>
+        <input type="text" id="username" name="username" class="console-text chrome-box"><br><br>
+
+        <label for="password" class="small">Password:</label><br>
+        <input type="password" id="password" name="password" class="console-text chrome-box"><br><br>
+
+        <input type="submit" value="Login" class="futuristic-text chrome-box">
+    </form>
+    {% with messages = get_flashed_messages(category_filter=["error"]) %}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="error-message">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</body>
+
+</html>

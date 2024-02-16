@@ -1,0 +1,752 @@
+[data-color-theme="console-green"] {
+    --primary: #00ff00;
+    --primary-selection: white;
+    --primary-shadow: green;
+    --primary-border: green;
+    --primary-shadow-transparent: rgba(0, 128, 0, 0.5);
+}
+
+[data-color-theme="maelstrom-red"] {
+    --primary: red;
+    --primary-selection: white;
+    --primary-shadow: rgb(177, 38, 38);
+    --primary-border: rgb(177, 38, 38);
+    ;
+    --primary-shadow-transparent: rgba(177, 38, 38, 0.5);
+}
+
+[data-color-theme="neon-blue"] {
+    --primary: cyan;
+    --primary-selection: white;
+    --primary-shadow: rgb(0, 180, 255);
+    --primary-border: rgb(0, 180, 255);
+    ;
+    --primary-shadow-transparent: rgba(0, 180, 255, 0.5);
+}
+
+[data-color-theme="mox-pink"] {
+    --primary: hotpink;
+    --primary-selection: white;
+    --primary-shadow: purple;
+    --primary-border: purple;
+    --primary-shadow-transparent: rgba(128, 0, 128, 0.5);
+}
+
+[data-color-theme="militech-yellow"] {
+    --primary: rgb(201, 201, 42);
+    --primary-selection: white;
+    --primary-shadow: rgb(126, 126, 25);
+    --primary-border: rgb(126, 126, 25);
+    --primary-shadow-transparent: rgba(126, 126, 25, 0.5);
+}
+
+[data-color-theme="monochrome-grey"] {
+    --primary: rgb(236, 236, 236);
+    --primary-selection: white;
+    --primary-shadow: gray;
+    --primary-border: gray;
+    --primary-shadow-transparent: rgba(128, 128, 128, 0.5);
+}
+
+[data-color-theme="night-city-blues"] {
+    --primary: cyan;
+    --primary-selection: white;
+    --primary-shadow: rgb(0, 180, 255);
+    --primary-border: rgb(177, 38, 38);
+    ;
+    --primary-shadow-transparent: rgba(177, 38, 38, 0.5);
+}
+
+[data-color-theme="flatline-classic"] {
+    --primary: cyan;
+    --primary-selection: white;
+    --primary-shadow: hotpink;
+    --primary-border: rgb(0, 180, 255);
+    ;
+    --primary-shadow-transparent: rgba(255, 105, 180, 0.5);
+}
+
+:root {
+    --secondary: #A0A0A0;
+    --background-color: #1e1e1e;
+    --success: #00ff00;
+    --warning: rgb(201, 201, 42);
+    --error: red;
+}
+
+body {
+    background-color: #121212;
+    color: #FFFFFF;
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+
+.chrome-box {
+    background: var(--background-color);
+    border: 1px solid var(--primary-border);
+    box-shadow: 0 0 5px var(--primary-shadow-transparent);
+    margin: 1px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.message-bubble-you,
+.message-bubble-partner {
+    width: 90%;
+    margin: auto;
+    background: var(--background-color);
+    position: relative;
+    border: 1px solid var(--primary-border);
+    box-shadow: 0 0 5px var(--primary-shadow-transparent);
+    border-radius: 0.4em;
+    padding-top: 0.4em;
+    padding-bottom: 0.4em;
+}
+
+.message-bubble-partner {
+    margin-right: 2.5em;
+    margin-left: 0.8em;
+    padding-left: 0.7em;
+    padding-right: 0.4em;
+
+}
+
+.message-bubble-you {
+    text-align: right;
+    margin-left: 2.5em;
+    margin-right: 0.8em;
+    padding-right: 0.7em;
+    padding-left: 0.4em;
+
+}
+
+.message-bubble-partner:before,
+.message-bubble-you:before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    height: 12px;
+    width: 12px;
+    background: var(--background-color);
+    transform: rotate(45deg);
+}
+
+.message-bubble-partner:before {
+    left: -7px;
+    /*i.e. half the height*/
+    border-bottom: inherit;
+    border-left: inherit;
+}
+
+.message-bubble-you:before {
+    right: -7px;
+    /*i.e. half the height*/
+    border-top: inherit;
+    border-right: inherit;
+}
+
+.reply-box-status {
+    right: 0px;
+    min-height: 2em;
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+
+.nav-bar {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.flex-container {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.menu-button {
+    width: 40%;
+    padding: 0.5em;
+}
+
+.futuristic-text {
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-shadow), 0 0 20px var(--primary-shadow), 0 0 30px var(--primary-shadow);
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+
+.futuristic-text:hover {
+    animation: neonGlow 1s infinite alternate;
+}
+
+.console-text {
+    color: var(--secondary);
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+
+
+
+@keyframes neonGlow {
+    from {
+        text-shadow: 0 0 10px var(--primary-shadow), 0 0 20px var(--primary-shadow), 0 0 30px var(--primary-shadow);
+    }
+
+    to {
+        text-shadow: 0 0 20px var(--primary-shadow), 0 0 30px var(--primary-shadow), 0 0 40px var(--primary-shadow);
+    }
+}
+
+nav {
+    background-color: var(--background-color);
+    padding: 0.5em;
+}
+
+a:link {
+    color: var(--primary);
+}
+
+/* visited link */
+a:visited {
+    color: var(--primary);
+}
+
+/* mouse over link */
+a:hover {
+    color: var(--primary-selection)
+}
+
+/* selected link */
+a:active {
+    color: var(--primary-selection)
+}
+
+nav ul {
+    padding: 0;
+    list-style: none;
+}
+
+nav ul li {
+    display: block;
+    /* Change from inline to block */
+    margin-bottom: 10px;
+    /* Added margin-bottom instead of margin-right for vertical spacing */
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.cyberpunk-error {
+    color: var(--error);
+    /* Bright red color */
+    text-shadow: 0 0 10px var(--error), 0 0 20px var(--error), 0 0 30px var(--error);
+    animation: neonGlowRed 1s infinite alternate;
+}
+
+.cyberpunk-success {
+    color: var(--success);
+    /* Bright green color */
+    text-shadow: 0 0 10px var(--success), 0 0 20px var(--success), 0 0 30px var(--success);
+    animation: neonGlowGreen 1s infinite alternate;
+}
+
+@keyframes neonGlowRed {
+    from {
+        text-shadow: 0 0 10px var(--error), 0 0 20px var(--error), 0 0 30px var(--error);
+    }
+
+    to {
+        text-shadow: 0 0 20px var(--error), 0 0 30px var(--error), 0 0 40px var(--error);
+    }
+}
+
+@keyframes neonGlowGreen {
+    from {
+        text-shadow: 0 0 10px var(--success), 0 0 20px var(--success), 0 0 30px var(--success);
+    }
+
+    to {
+        text-shadow: 0 0 20px var(--success), 0 0 30px var(--success), 0 0 40px var(--success);
+    }
+}
+
+.success-message {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid var(--success);
+    /* Green border to match the theme */
+    color: var(--success);
+    /* Bright green text color */
+    background-color: #1e1e1e;
+    /* Dark background for contrast */
+    text-shadow: 0 0 10px var(--success), 0 0 20px var(--success), 0 0 30px var(--success);
+    /* Neon glow for text */
+}
+
+.scanner-size {
+    width: 90%;
+    /* 70% of the viewport's width */
+    /*height:50vw; making it proportionate to the width */
+    margin: 0 auto;
+    /* centering it horizontally */
+}
+
+.error-message {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid var(--error);
+    color: var(--error);
+    background-color: #1e1e1e;
+    /* Soft red */
+}
+
+
+#feedback-frame {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* so that it doesn't interfere with clicks */
+    z-index: 1000;
+    /* ensure it's on top */
+    box-sizing: border-box;
+    /* to ensure border doesn't increase size */
+    outline: 20px solid transparent;
+    /* this will push the content inside */
+}
+
+.cyberpunk-frame-success {
+    box-shadow: 0 0 0 20px #0f380f inset;
+    /* Deep green border inside */
+}
+
+.cyberpunk-frame-error {
+    box-shadow: 0 0 0 20px #8b0000 inset;
+    /* Deep red border inside */
+}
+
+
+/* For tablets */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 10px;
+    }
+
+    .nav-links {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Adjustments for mobile screens */
+@media (max-width: 480px) {
+    .large-button {
+        font-size: 20px;
+        /* Bigger font size for mobile for easy reading */
+        padding: 5px 5px;
+        /* Larger padding for a comfortable touch experience */
+    }
+}
+
+
+a.futuristic-text:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.posts-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.post-header {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.post-content {
+    border-top: 1px dotted var(--secondary);
+    margin-top: 2px;
+    margin-bottom: 6px;
+    padding-top: 2px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+    /* modern way to create gaps between elements */
+}
+
+
+#message-container {
+    text-align: center;
+}
+
+#network-info {
+    text-align: center;
+}
+
+form {
+    max-width: 400px;
+    margin: 0 auto;
+    /* Center the form horizontally */
+    padding: 20px;
+    /* Give the form some internal spacing */
+    box-sizing: border-box;
+    /* Include padding and border in the element's total width and height */
+}
+
+.centered-form {
+    display: flex;
+    justify-content: center;
+    /* Horizontally center content */
+    align-items: center;
+    /* Vertically center content */
+    max-width: 400px;
+    margin: 0 auto;
+    /* Center the form horizontally */
+    padding: 3px;
+    /* Set padding to 3px */
+    border: none;
+    /* No border */
+    box-sizing: border-box;
+    /* Include padding and border in the element's total width and height */
+}
+
+
+label,
+input[type="text"],
+input[type="password"],
+input[type="submit"] {
+    width: 100%;
+    /* Make form elements take up the full width of their container */
+    box-sizing: border-box;
+    /* Include padding and border in the element's total width and height */
+    margin-bottom: 10px;
+    /* Space between form elements */
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+textarea {
+    color: var(--secondary);
+}
+
+/* Adjustments for mobile screens */
+@media (max-width: 640px) {
+    h1 {
+        font-size: 24px;
+        /* Reduce font size for mobile */
+    }
+
+    label {
+        font-size: 14px;
+        /* Reduce label font size for mobile */
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="submit"] {
+        padding: 10px;
+        /* Adjust the padding for better touch */
+    }
+}
+
+/* Add this to your style2.css */
+.large-button {
+    font-size: large;
+    font-weight: bold;
+    /* Slightly larger font size for better readability */
+    padding: 5px 10px;
+    /* Increased padding for better touch targets */
+    display: block;
+    /* Makes it a block-level element */
+    background-color: var(--background-color);
+    /* Darker background color */
+    border: 1px solid var(--secondary);
+    /* A border to differentiate the button */
+    margin-bottom: 2px;
+    /* Space between buttons */
+    transition: background-color 0.3s ease;
+    /* Smooth transition for hover effects */
+    text-align: center;
+    /* Center the text inside the button */
+}
+
+.large-button:hover {
+    border-color: var(--primary-border);
+    /* Slightly lighter background on hover */
+}
+
+.linkbox {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.hover-glitch-border {
+    position: relative;
+}
+
+.hover-glitch-border:hover {
+    border-color: var(--primary-selection);
+}
+
+.hoverglitch {
+    position: relative;
+
+}
+
+.hoverglitch:hover {
+    text-shadow: 0.05em 0 0 var(--primary-selection), -0.03em -0.04em 0 var(--primary-selection),
+        0.025em 0.04em 0 var(--primary-selection);
+    animation: hoverglitch 725ms infinite;
+}
+
+.hoverglitch:hover::after {
+    animation: hoverglitch 500ms infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+    transform: translate(-0.04em, -0.03em);
+    opacity: 0.75;
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+}
+
+.hoverglitch:hover::before {
+    animation: hoverglitch 375ms infinite;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+    transform: translate(0.04em, 0.03em);
+    opacity: 0.75;
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+}
+
+@keyframes hoverglitch {
+    0% {
+        text-shadow: 0.05em 0 0 var(--primary-selection), -0.03em -0.04em 0 var(--primary-selection),
+            0.025em 0.04em 0 var(--primary-selection);
+    }
+
+    15% {
+        text-shadow: 0.05em 0 0 var(--primary-selection), -0.03em -0.04em 0 var(--primary-selection),
+            0.025em 0.04em 0 var(--primary-selection);
+    }
+
+    16% {
+        text-shadow: -0.05em -0.025em 0 var(--primary-selection), 0.025em 0.035em 0 var(--primary-selection),
+            -0.05em -0.05em 0 var(--primary-selection);
+    }
+
+    49% {
+        text-shadow: -0.05em -0.025em 0 var(--primary-selection), 0.025em 0.035em 0 var(--primary-selection),
+            -0.05em -0.05em 0 var(--primary-selection);
+    }
+
+    50% {
+        text-shadow: 0.05em 0.035em 0 var(--primary-selection), 0.03em 0 0 var(--primary-selection),
+            0 -0.04em 0 var(--primary-selection);
+    }
+
+    99% {
+        text-shadow: 0.05em 0.035em 0 var(--primary-selection), 0.03em 0 0 var(--primary-selection),
+            0 -0.04em 0 var(--primary-selection);
+    }
+
+    100% {
+        text-shadow: -0.05em 0 0 var(--primary-selection), -0.025em -0.04em 0 var(--primary-selection),
+            -0.04em -0.025em 0 var(--primary-selection);
+    }
+}
+
+.wound-unhurt {
+    color: var(--success);
+    text-shadow: 0 0 10px var(--success), 0 0 20px var(--success), 0 0 30px var(--success);
+    animation: none;
+}
+
+a.wound-unhurt:link {
+    color: var(--success);
+}
+a.wound-unhurt:visited {
+    color: var(--success);
+}
+
+.wound-wounded {
+    color: var(--warning);
+    text-shadow: 0 0 10px var(--warning), 0 0 20px var(--warning), 0 0 30px var(--warning);
+    animation: none;
+}
+
+a.wound-wounded:link {
+    color: var(--warning);
+}
+a.wound-wounded:visited {
+    color: var(--warning);
+}
+
+.wound-dying {
+    color: var(--error);
+    text-shadow: 0 0 10px var(--error), 0 0 20px var(--error), 0 0 30px var(--error);
+    animation: none;
+}
+
+a.wound-dying:link {
+    color: var(--error);
+}
+a.wound-dying:visited {
+    color: var(--error);
+}
+
+.wound-dead {
+    color: var(--secondary);
+    text-shadow: none;
+    animation: none;
+}
+
+a.wound-dead:link {
+    color: var(--secondary);
+}
+a.wound-dead:visited {
+    color: var(--secondary);
+}
+
+.message-section {
+    display: none;
+}
+
+.unread {
+    color: red;
+}
+
+.reply-section {
+    display: none;
+}
+
+.centered {
+    margin: auto;
+    text-align: center;
+}
+
+.fullwidth {
+    width: 90%;
+}
+
+.padded {
+    padding: 0.5em;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.large {
+    font-size: large;
+}
+
+.x-large {
+    font-size: x-large;
+}
+
+.xx-large {
+    font-size: xx-large;
+}
+
+.small {
+    font-size: small;
+}
+
+.x-small {
+    font-size: x-small;
+}
+
+.chrome-dialog {
+    margin: auto;
+    padding: 5px;
+    background: var(--background-color);
+    border: 1px solid var(--primary-border);
+    box-shadow: 0 0 5px var(--primary-shadow-transparent);
+}
+
+::backdrop {
+    background-color: var(--secondary);
+    opacity: 0.75;
+  }
+
+.button-row {
+        display: flex;
+        justify-content: center; /* Center buttons horizontally */
+        align-items: center;     /* Align buttons vertically */
+        gap: 10px;               /* Space between buttons */
+    }
+
+.button-row button {
+    flex: 1;
+    margin: 5px;
+    height: 50px; /* or any other height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background-color: #000; /* dark background */
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: transform 0.1s ease, box-shadow 0.1s ease; /* Smooth transition for press effect */
+}
+
+.button-row button:hover {
+    box-shadow: 0 0 10px var(--primary-border); /* Glowing effect on hover */
+}
+
+.button-row button:active {
+    transform: translateY(2px); /* Button press effect */
+    box-shadow: 0 0 5px var(--primary-shadow-transparent); /* Less glow on press for a 'pushed' effect */
+}
+
+
+.chrome-box.futuristic-text.app-button {
+    display: block; /* Each button is a block-level element */
+    width: 80%; 
+    margin: 0.5em auto; /* Margin on top and bottom for spacing */
+    padding: 10px; /* Padding inside the button */
+    background-color: #000; /* Dark background */
+    text-align: center; /* Align text to the center */
+    cursor: pointer; /* Change cursor to indicate the button is clickable */
+    transition: background-color 0.3s ease; /* Transition for hover effect */
+}
+
+.chrome-box.futuristic-text.app-button:hover {
+    background-color: #112; /* Slightly lighter background on hover */
+}
+
+.chrome-box.futuristic-text.app-button:active {
+    transform: translateY(2px); /* Button press effect */
+}
+
+button.chrome-box.futuristic-text:disabled {
+    color: var(--secondary);
+    border-color: var(--secondary);
+}

@@ -1,0 +1,45 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Courier Tasks{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item Name</th>
+            <th>Item Description</th>
+            <th>Buyer</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks %}
+        <tr>
+            <td>{{ task.listing.name }}</td>
+            <td>{{ task.listing.description }}</td>
+            <td>{{ task.buyer.username }}</td>
+            
+            <td> 
+                {% if task.status != "New" %}
+                <form action="{{ url_for('admin_app.admin_couriertasks.regress_task', task_id=task.id) }}" method="post">
+                    <button type="submit" class="chrome-box futuristic-text">&lt;&lt; Rollback</button>
+                </form>
+                {% endif %}
+            </td>
+            <td>{{ task.status }}</td>
+            <td>
+                <form action="{{ url_for('admin_app.admin_couriertasks.progress_task', task_id=task.id) }}" method="post">
+                    <button type="submit" class="chrome-box futuristic-text">Progress &gt;&gt;</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

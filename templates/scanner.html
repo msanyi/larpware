@@ -1,0 +1,499 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Scanner{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div id="feedback-frame"></div>
+
+<div id="reader" class="scanner-size"></div>
+<div id="scanner-helper" class="console-text centered small">If you are getting "NotReadableError: could not start video
+    source", there is probably another application using your camera in the background. <br /> Close all other
+    applications and reload this page.</div>
+<div id="scan-info" class="cyberpunk-success" style="display: none;">
+    <p id="scanned-item-message">Data shard contains the content </p>
+    <input type="hidden" id="scanned-item-name">
+    <button class="large-button futuristic-text" id="add-to-inventory-btn">Add to inventory!</button>
+    <p><span id="counter">10</span> seconds left to add to inventory.</p>
+</div>
+
+<div id="network-info" class="cyberpunk-success" style="display: none;">
+    <p>Entry point to network: <span id="network-name"></span></p>
+    <button class="large-button futuristic-text" id="enter-network-btn">Enter network!</button>
+    <button class="large-button futuristic-text" id="decline-network-btn">Cancel......</button>
+</div>
+
+
+<div id="empty-shard-info" class="console-text" style="display: none;">
+    <p>This shard is empty. Do you want to load one of your Files or Apps into it?</p>
+    <button class="large-button futuristic-text" id="start-selection-btn">Select from Inventory</button>
+</div>
+
+<div id="empty-shard-loader" class="console-text" style="display: none;">
+    <p>Select an item from your Inventory:</p>
+    <table id="inventory-container" class="console-text"></table>
+    <div id="cash-shard-creator" class="futuristic-text">
+        <div>You have <span id="balance">0</span> €$ on your account.</div>
+        <label for="shard-amount">Install cryptokey on shard for €$:</label>
+        <input type="number" name="shard-amount" id="shard-amount" class="chrome-box futuristic-text">
+        <input type="hidden" name="shard-id" id="shard-id" value="">
+        <button id="shard-addcash" onclick="setCashShard();" class="chrome-box futuristic-text"> Add €$ to shard!</button>
+    </div>
+</div>
+
+
+
+<div id="message-container" style="display: none;"></div>
+{% if qrcodes %}
+
+<h3 class="futuristic-text">Access Point Links for admins only</h3>
+
+<!-- Print the length of qrcodes to see if the list is empty -->
+<p>Number of QRCodes: {{ qrcodes|length }}</p>
+
+{% for qrcode in qrcodes %}
+<div>
+    <a href="#" onclick="handleAccessPoint('{{ qrcode.id }}')" class="futuristic-text">Admin shortcut for network {{
+        qrcode.id }}</a>
+</div>
+{% else %}
+<!-- This block will be rendered if the qrcodes list is empty -->
+<p>No QRCodes found.</p>
+{% endfor %}
+
+{% endif %}
+
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='html5-qrcode.min.js') }}"></script>
+<script type="text/javascript">
+    var countdownTimer;
+    var globalRedirectURL = null;
+
+
+    function handleAccessPoint(qrcode) {
+        console.log('Request data sent to server:', JSON.stringify({ qrcode: qrcode }));
+
+        $.ajax({
+            url: "{{ url_for('user_app.scanner_app.scanner_route') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ qrcode: qrcode }),
+            success: function (response) {
+                console.log("Server Response:", response);  // <-- Add this line to inspect the server response
+
+                if (response.is_netrunner) {
+                    document.getElementById("network-name").textContent = response.network_name;
+                    document.getElementById("enter-network-btn").style.display = "block"; // show the button for netrunners
+                    document.getElementById("network-info").style.display = "block";
+                    if (response.redirect_url) {
+                        globalRedirectURL = response.redirect_url;  // Set the redirect_url here for netrunners as well
+                    }
+                } else if (response.redirect_url) {
+                    globalRedirectURL = response.redirect_url;  // Save the redirect_url here
+                    document.getElementById("network-name").textContent = response.network_name;
+                    document.getElementById("enter-network-btn").style.display = "none";  // hide the "Belépek a hálózatba!" button for non-netrunners
+                    document.getElementById("network-info").style.display = "block";
+
+
+                } else if (response.qrcodetype === 'lock') {
+                    handleLockScan(response);
+                } else {
+                    displayMessage("You found an entry to " + decodedText + " network");
+                }
+            },
+            error: function (error) {
+                console.error("Error accessing network: ", error);
+            }
+        });
+    }
+
+
+    function handleLockScan(response) {
+        console.log("handleLockScan called");
+        console.log("response qrcodetype:", response.qrcodetype);
+        console.log("full response:", response);
+        if (response.qrcodetype === 'lock') {
+            switch (response.action) {
+                case "grantAccess":
+                    grantAccessVisualFeedback();
+                    displayMessage(response.message, success);
+                    break;
+
+                case "denyAccess":
+                    denyAccessVisualFeedback();
+                    console.log("response lockpickCount:", response.lockpickCount);
+                    if (response.lockpickCount > 0) {
+                        displayLockpickOption(response.lockpickCount);
+                    }
+                    break;
+
+                case "noLockpicks":
+                    console.log("noLockpicks called");
+                    denyAccessVisualFeedback();
+                    displayMessage(response.message, error);
+                    break;
+            }
+        }
+    }
+
+    //    function displayErrorMessage(message) {
+    //        var messageDiv = document.createElement("div");
+    //        messageDiv.className = "error-message";
+    //        messageDiv.textContent = message;
+    //        document.body.appendChild(messageDiv);
+    //    }
+
+
+    function displayLockpickOption(lockpickCount) {
+        // Create the container for both message and button
+        var container = document.createElement("div");
+        container.style.display = "flex";
+        container.style.flexDirection = "column"; // stack children vertically
+        container.style.alignItems = "center"; // center children horizontally
+        container.style.height = "100vh"; // takes the full viewport height
+
+        // Create the message
+        var lockpickMessageText = "You have " + lockpickCount + " Lockpick apps in your inventory, use one to crack the lock?";
+        var lockpickMessage = document.createElement("p");
+        lockpickMessage.textContent = lockpickMessageText;
+        lockpickMessage.classList.add('cyberpunk-success'); // Add the class for the color
+
+        container.appendChild(lockpickMessage);
+
+        // Create the button
+        var lockpickButton = document.createElement("button");
+        lockpickButton.textContent = "Use Lockpick!";
+        lockpickButton.classList.add("large-button");
+        lockpickButton.classList.add("futuristic-text");
+        lockpickButton.onclick = function () {
+            useLockpick();
+            container.style.display = "none"; // Hide the container when the button is pressed
+
+        };
+
+        container.appendChild(lockpickButton);
+
+        // Append the container to the body
+        document.body.appendChild(container);
+    }
+
+
+
+
+
+    function useLockpick() {
+        // Make a POST request to use a lockpick
+        $.ajax({
+            url: "{{ url_for('user_app.scanner_app.use_lockpick') }}",
+            type: 'POST',
+            success: function (response) {
+                displayMessage("Lockpick active for 5 minutes. ACCESS GRANTED.");
+                var countdown = 5 * 60;
+                countdownTimer = setInterval(function () {
+                    countdown--;
+                    // Update the UI to display the countdown timer
+                    // Stop the timer when countdown reaches 0
+                    if (countdown <= 0) {
+                        clearInterval(countdownTimer);
+                        displayMessage("Lockpick has expired.", "error");
+                    }
+                }, 1000);
+            },
+            error: function (error) {
+                displayMessage("Error using lockpick: " + error.responseText, "error");
+            }
+        });
+    }
+
+    var isPaused = false;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        document.getElementById('scanner-helper').style.display = 'none';
+
+        if (isPaused) {
+            return; // Exit if scanning is paused
+        }
+        document.getElementById("network-info").style.display = "none";
+        document.getElementById("scan-info").style.display = "none";
+        document.getElementById("empty-shard-info").style.display = "none";
+        document.getElementById("empty-shard-loader").style.display = "none";
+        document.getElementById('message-container').innerHTML = '';
+        document.getElementById("scanned-item-name").value = decodedText;
+
+        // Pause the scanner for the next 5 seconds
+        isPaused = true;
+        setTimeout(() => {
+            isPaused = false; // Resume scanning after 5 seconds
+        }, 5000);
+
+        console.log(`Code scanned = ${decodedText}`, decodedResult);
+
+        // Determine if the scanned code corresponds to an app or file
+
+        $.ajax({
+            url: "{{ url_for('user_app.scanner_app.scanner_route') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ qrcode: decodedText }),
+            success: function (response) {
+                if (response.redirect_url) {
+                    globalRedirectURL = response.redirect_url;  // Save the redirect_url here
+                    document.getElementById("network-name").textContent = response.network_name;
+                    document.getElementById("network-info").style.display = "block";
+                } else if (response.qrcodetype === 'inventory') {
+                    document.getElementById("scanned-item-message").textContent = response.message;
+                    document.getElementById("scan-info").style.display = "block";
+
+                    startCounter();
+                } else {
+
+                    if (response.message) {
+                        displayMessage(response.message);
+                    }
+                    if (response.qrcodetype === 'lock') {
+                        handleLockScan(response);
+                    }
+                }
+
+            },
+            statusCode: {
+                403: function (xhr) { // Handle 403 error code
+                    var response = JSON.parse(xhr.responseText);
+                    handleLockScan(response);
+                },
+                400: function (xhr) { // Handle 403 error code
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.qrcodetype === 'inventory') {
+                        document.getElementById("empty-shard-info").style.display = "block";
+                    }
+                }
+            },
+            error: function (error) {
+                console.error("Error accessing network: ", error);
+                if (error && error.responseText) {
+                    var response = JSON.parse(error.responseText);
+                    handleLockScan(response);
+                }
+            }
+        });
+
+    }
+
+
+    document.getElementById("add-to-inventory-btn").addEventListener("click", function () {
+        // Extract the name of the scanned item
+        var scannedItem = document.getElementById("scanned-item-name").value;
+
+        // Make your AJAX call here to add to inventory
+        $.ajax({
+            url: "{{ url_for('user_app.scanner_app.add_to_inventory') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ qrcode: scannedItem }),
+            success: function (response) {
+                // Only handle the addition to the inventory here.
+                if (response.message) {
+                    displayMessage(response.message);
+                } else if (response.error) {
+                    displayMessage(response.error);  // TODO checking this
+                }
+            },
+            error: function (error) {
+                console.error("Error accessing network: ", error);
+                if (error && error.responseText) {
+                    var response = JSON.parse(error.responseText);
+                    displayMessage("Error adding item to inventory: " + response.message, "error");
+                }
+            }
+        });
+
+        // Hide the scan-info div and clear the countdown timer
+        document.getElementById("scan-info").style.display = "none";
+        clearInterval(countdownTimer);
+    });
+
+
+
+
+    function startCounter() {
+        var count = 10;
+        countdownTimer = setInterval(function () {
+            count--;
+            document.getElementById("counter").textContent = count;
+
+            if (count <= 0) {
+                clearInterval(countdownTimer);
+                document.getElementById("scan-info").style.display = "none";
+            }
+        }, 1000);
+    }
+
+
+
+
+
+
+    function grantAccessVisualFeedback() {
+        console.log("grantAccessVisualFeedback called");
+        const frame = document.getElementById('feedback-frame');
+        frame.classList.add('cyberpunk-frame-success');
+        setTimeout(() => {
+            frame.classList.remove('cyberpunk-frame-success');
+        }, 5000);
+    }
+
+    function denyAccessVisualFeedback() {
+        console.log("denyAccessVisualFeedback called");
+        const frame = document.getElementById('feedback-frame');
+        frame.classList.add('cyberpunk-frame-error');
+        setTimeout(() => {
+            frame.classList.remove('cyberpunk-frame-error');
+        }, 5000);
+    }
+
+
+
+    console.log("Current body classes:", document.body.classList.toString());
+
+
+    function onScanFailure(error) {
+        // console.warn(`QR code scan failed = ${error}`);
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: 180 }, /* verbose= */ false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+
+
+    function displayMessage(message, type = 'success') {
+        var container = document.getElementById('message-container');
+        container.style.display = 'block';
+        // Create a new div element
+        const messageDiv = document.createElement('div');
+
+        // Set the content and class of the div based on the type
+        messageDiv.textContent = message;
+        messageDiv.className = type === 'success' ? 'cyberpunk-success' : 'cyberpunk-error';
+
+        // Clear previous messages and append the new one
+        console.log('container: ', container)
+        container.innerHTML = '';
+        container.appendChild(messageDiv);
+    }
+
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Event listener for entering the network
+        document.getElementById("enter-network-btn").addEventListener("click", function () {
+            if (globalRedirectURL) {
+                window.location.href = globalRedirectURL;
+            } else {
+                console.error("No redirect URL found.");
+            }
+        });
+
+        // Event listener for declining to enter the network
+        document.getElementById("decline-network-btn").addEventListener("click", function () {
+            // Hide the network-info div
+            document.getElementById("network-info").style.display = "none";
+        });
+
+        document.getElementById("start-selection-btn").addEventListener("click", function () {
+            //Get user inventory, fill the inventory table and swap out the views
+            $.ajax({
+                url: "{{ url_for('user_app.inventory_app.get_inventory_items') }}",
+                type: 'GET',
+                success: function (response) {
+                    inventoryTable = document.getElementById("inventory-container");
+                    inventoryTable.innerHTML="";
+                    response.inventory.forEach(item => {
+                        const itemTr = document.createElement('tr');
+                        itemTr.classList.add('console-text');
+
+                        const loadButtion = document.createElement('button');
+                        loadButtion.classList.add('chrome-box');
+                        loadButtion.classList.add('futuristic-text');
+                        loadButtion.innerText = 'Load to shard';
+                        loadButtion.addEventListener('click', function () {
+                            loadToShard(item.id, item.type);
+                        });
+
+                        const itemName = document.createElement('td');
+                        itemName.classList.add('console-text');
+                        itemName.innerHTML = item.name;
+                        
+                        itemTr.appendChild(itemName);
+                        itemTr.appendChild(loadButtion);
+
+                        inventoryTable.appendChild(itemTr);
+
+                    });
+                    document.getElementById("balance").innerHTML = response.balance;
+                    document.getElementById("empty-shard-info").style.display = "none";
+                    document.getElementById("empty-shard-loader").style.display = "block";
+
+                },
+                error: function (error) {
+                    console.error("Error opening inventory: ", error);
+                    if (error && error.responseText) {
+                        var response = JSON.parse(error.responseText);
+                        displayMessage("Error opening inventory: " + response.message, "error");
+                    }
+                }
+            });
+        })
+    });
+
+    function loadToShard(itemId, itemType) {
+        var scannedItem = document.getElementById("scanned-item-name").value;
+        document.getElementById("empty-shard-loader").style.display = "none";
+
+        $.ajax({
+            url: "{{ url_for('user_app.scanner_app.put_to_shard') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ item_id: itemId , item_type: itemType, qrcode: scannedItem}),
+            success: function (response) {
+                // Only handle the addition to the inventory here.
+                if (response.message) {
+                    displayMessage(response.message);
+                } else if (response.error) {
+                    displayMessage(response.error);  // TODO checking this
+                }
+            },
+            error: function (error) {
+                console.error("Error loading to shard: ", error);
+                if (error && error.responseText) {
+                    var response = JSON.parse(error.responseText);
+                    displayMessage("Error loading to shard: " + response.message, "error");
+                }
+            }
+        });
+    }
+
+    function setCashShard() {
+        var balance = parseInt(document.getElementById("balance").innerHTML);
+        var cashValue = $('#shard-amount').val();
+        if (cashValue > balance) {
+            displayMessage("Insufficient balance!", "error");
+        } else if (cashValue <= 0) {
+            displayMessage("Invalid amount!", "error");
+        } else {
+            loadToShard(cashValue, "Cash")
+        }
+    }
+
+    history.pushState(null, null, window.location.href);
+    window.onpopstate = function (event) {
+        history.go(1);
+    };
+
+</script>
+{% endblock %}

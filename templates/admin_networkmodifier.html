@@ -1,0 +1,27 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Create a new network{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<a href="{{ url_for('admin_app.admin_home') }}">Admin Home</a>
+<h1>Modify an Existing Network</h1>
+<select id="network-select"></select>
+<!-- Adding a place to display the success message -->
+<div id="message"></div>
+<form id="network-form">
+    <label for="network-name">Network Name:</label>
+    <input type="text" id="network-name" name="name" required><br>
+    <label for="organization-id">Organization ID:</label>
+    <input type="number" id="organization-id" name="organization_id" required><br>
+    <label for="network-length">Network Length:</label>
+    <input type="number" id="network-length" name="length" min="0" max="20" required><br>
+    <div id="node-form-container"></div>
+    <button type="submit">Modify Network</button>
+</form>
+{% endblock %}
+{% block script %}
+<script src="/static/admin_networkmodifier.js"></script>
+{% endblock %}

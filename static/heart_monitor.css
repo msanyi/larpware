@@ -1,0 +1,191 @@
+:root {
+    --animation-time: 10s;
+    /* This  is the one-cycle time */
+    --animation-key: var(--animation-time)/1s;
+    --newbpm: 360 / var(--animation-key);
+    --bpm: var(--animation-key)*10s;
+}
+
+
+.number-1 {
+    font-size: 6rem;
+    text-align: center;
+    width: 6rem;
+    position: relative;
+
+    &:after {
+        display: block;
+        position: absolute;
+        content: var(--newbpm) + "";
+        width: 12rem;
+        height: 10rem;
+        top: 0;
+        left: 0;
+    }
+
+    span {
+        font-size: 2rem;
+        position: relative;
+        top: -2rem;
+        left: -5rem;
+        opacity: 1;
+        animation: beat (var(--animation-time)/6) infinite;
+    }
+}
+
+
+.container {
+    width: 360px;
+    margin: 10px auto;
+}
+
+.graph {
+    /* the green gradient */
+    outline: 1px var(--primary-border) solid;
+    box-shadow: 0 0 4px #37af8c;
+    padding: 0;
+    animation: travel var(--animation-time) infinite linear;
+    display: flex;
+    background-size: 100% auto;
+    background-position: -380px 0;
+    height: 110px;
+}
+
+.graph[data-state="unhurt"] {
+    background: linear-gradient(90deg, #231f20 0, var(--success) 50%, #231f20 50%);
+}
+
+.graph[data-state="wounded"] {
+    background: linear-gradient(90deg, #231f20 0, var(--warning) 50%, #231f20 50%);
+}
+
+.graph[data-state="dying"] {
+    background: linear-gradient(90deg, #231f20 0, var(--error) 50%, #231f20 50%);
+}
+
+.graph[data-state="dead"] {
+    background: linear-gradient(90deg, #231f20 0, var(--secondary) 50%, #231f20 50%);
+}
+
+.cell {
+    margin: 0;
+    display: flex;
+    width: 16.7%;
+    height: 100%;
+}
+
+.cell[data-state="unhurt"] {
+    background: url(/static/hr-ok.svg);
+    background-size: 700% 100%;
+    animation: shuffle var(--animation-time)*6 steps(1) infinite;
+
+}
+
+.cell[data-state="wounded"] {
+    background: url(/static/hr-ok.svg);
+    background-size: 700% 100%;
+    animation: shuffle var(--animation-time)*6 steps(1) infinite;
+
+}
+
+.cell[data-state="dying"] {
+    background: url(/static/hr-dying.svg);
+    background-size: 700% 100%;
+    animation: shuffle var(--animation-time)*6 steps(1) infinite;
+
+}
+
+.cell[data-state="dead"] {
+    background: url(/static/hr-dead.svg);
+    background-size: 700% 100%;
+    animation: shuffle var(--animation-time)*6 steps(1) infinite;
+
+}
+
+.cell-1 {
+    background-position: 0, 0;
+    animation-delay: (var(--animation-time)/6)*-2;
+}
+
+.cell-2 {
+    background-position: 16.6%, 0;
+    animation-delay: (var(--animation-time)/6)*-13;
+}
+
+.cell-3 {
+    background-position: 33.3%, 0;
+    animation-delay: (var(--animation-time/6))*-30;
+}
+
+.cell-4 {
+    background-position: 50%, 0;
+    animation-delay: (var(--animation-time/6))*-5;
+}
+
+.cell-5 {
+    background-position: 66.6%, 0;
+    animation-delay: (var(--animation-time/6))*-22;
+}
+
+.cell-6 {
+    background-position: 83.3%, 0;
+    animation-delay: (var(--animation-time/6))*-9;
+}
+
+@keyframes shuffle {
+    0% {
+        background-position: 83.3%, 0;
+    }
+
+    16.6% {
+        background-position: 33.33%, 0;
+    }
+
+    33.3% {
+        background-position: 66.66%, 0;
+    }
+
+    50% {
+        background-position: 16.66%, 0;
+    }
+
+    66.6% {
+        background-position: 50%, 0;
+    }
+
+    83.3% {
+        background-position: 0%, 0;
+    }
+}
+
+@keyframes beat {
+    0% {
+        opacity: 1;
+    }
+
+    35% {
+        opacity: 1;
+    }
+
+    45% {
+        opacity: 0.3;
+    }
+
+    60% {
+        opacity: 1
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes travel {
+    0% {
+        background-position: -360px 0;
+    }
+
+    100% {
+        background-position: 360px 0;
+    }
+}

@@ -1,0 +1,429 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Inventory{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
+
+{% set user_app_names = user_apps | map(attribute='app_type.name') | list %}
+<div class="chrome-box centered">
+    <div class="console-text">Your balance:</div>
+    <div class="futuristic-text bold x-large"><span id="userBalance">{{ user.balance }}</span> €$</div>
+</div>
+<div class="chrome-box">
+    <h2 class="futuristic-text">Apps:</h2>
+    <table class="console-text">
+        {% for item in user_apps %}
+        <tr id="row-{{ item.app_type.name }}">
+            <td>App:</td>
+            <td class="futuristic-text">{{ item.app_type.name }}</td>
+            <td>&nbsp;Qty:</td>
+            <td id="count-{{ item.app_type.name }}" class="futuristic-text">{{ item.count }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td>There are no apps available on your deck</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+<div id="filesContainer" class="chrome-box">
+    <h2 class="futuristic-text">Files:</h2>
+    {% for file in user_files %}
+    <div id="file-item-{{file.id}}" class="file-item" data-file-id="{{ file.id }}">
+        <p class="console-text">Name: <span class="futuristic-text">{{ file.name }}</span>
+            <br /> File operations:<button class="read-button console-text chrome-box">Open</button>
+            {% if file.copied_by_id and 'Scrub' in user_app_names %}
+            <button class="scrub-button console-text chrome-box">Run a Scrub</button>
+            {% endif %} <br />
+        <div class="chrome-box file-content"></div>
+        </p>
+    </div>
+    {% else %}
+    <p class="futuristic-text">No files</p>
+    {% endfor %}
+</div>
+
+<div class="chrome-box">
+    <h3 class="futuristic-text sendMoney">Transfer €$ or files</h3>
+    <!-- Place this right after your "Send Money" heading -->
+    <p id="transactionStatusText" style="display: none;" class="futuristic-text"></p>
+
+    <div id="money-transfer-container-selected" style="display:none">
+        <p class="console-text">Sending to: <span id="user_to_send_to" class="futuristic-text"> </span>
+            <button onclick="unselectUser()" class="futuristic-text chrome-box">X</button>
+
+            <select id="sendOptionSelector" class="futuristic-text chrome-box">
+                <option value="money">Money</option>
+                <option value="file">File</option>
+                <option value="app">App</option>
+            </select>
+        </p>
+
+        <form method="POST" id="sendMoneyForm">
+            <input type="hidden" id="senderId" name="senderId" value="{{ user.id }}"> <!-- sender's id (hidden) -->
+            <input type="hidden" id="receiverId" name="receiverId" value="{{ target_user_id }}">
+            <!-- receiver's id (hidden) -->
+            <label for="amount" class="futuristic-text x-large">€$:</label>
+            <input type="number" id="amount" name="amount" class="chrome-box x-large"><br>
+            <input type="submit" id="sendButton" name="send_money" value="Send money"
+                class="futuristic-text large-button">
+            <p id="insufficientBalanceText" style="display: none; color: red;" class="futuristic-text">Insufficient
+                balance!</p>
+        </form>
+
+
+
+
+        <!-- Selector for sending method: Money or File -->
+
+
+        <!-- The form for sending a file, initially hidden -->
+        <form method="POST" id="sendFileForm" style="display: none;">
+            <select id="fileSelector" class="console-text chrome-box large">
+                <option value="" hidden>Select file</option>
+            </select>
+
+            <button id="sendFileButton" class="futuristic-text large-button">Send file</button>
+        </form>
+
+        <!-- The form for sending a file, initially hidden -->
+        <form method="POST" id="sendAppForm" style="display: none;">
+            <select id="appSelector" class="console-text chrome-box large">
+                <option value="" hidden>Select app</option>
+            </select>
+
+            <button id="sendAppButton" class="futuristic-text large-button">Send app</button>
+        </form>
+
+    </div>
+    <div id="money-transfer-container-unselected">
+        <p class="console-text">Sending to:
+            <select id="friend-list-selector" class="futuristic-text chrome-box"
+                onchange="if (this.selectedIndex > 0) { selectUser(this.options[this.selectedIndex].value, this.options[this.selectedIndex].text); }">
+                <option value="" disabled selected hidden> </option>
+                {% for friend in friends %}
+                <option value="{{friend.id}}">{{
+                    friend.username }}</option>
+                {% endfor %}
+            </select>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+
+    var loggedInUserId = "{{ user.id }}";
+
+    $(document).ready(function () {
+        $('.file-content').hide();
+
+        $('.read-button').click(function () {
+            // Collapse any previously opened file content
+            $('.file-content').hide();
+
+            // Get the parent container of the clicked button
+            let fileItem = $(this).closest('.file-item');
+
+            // Get the file ID from the data attribute
+            let fileId = fileItem.data('file-id');
+
+            // Fetch file content via AJAX
+            $.get(`/api/get-file-content/${fileId}`, function (data) {
+                let contentHtml = data.content;
+                if (data.original_owner_username) {
+                    contentHtml += `<p>Original Owner: ${data.original_owner_username}</p>`;
+                }
+                if (data.copied_by_username) {
+                    contentHtml += `<p>Copier: ${data.copied_by_username}</p>`;
+                }
+                fileItem.find('.file-content').html(contentHtml).show();
+            });
+        });
+
+
+        $('.scrub-button').click(function () {
+            let fileItem = $(this).closest('.file-item');
+            let fileId = fileItem.data('file-id');
+
+            $.post(`/api/scrub-file/${fileId}`, function (data) {
+                if (data.success) {
+                    alert("File scrubbed successfully!");
+                    // Optionally, you can hide the scrub button and update the file content
+                    $(this).hide();
+                    fileItem.find('.file-content').html(data.file_content);
+                } else {
+                    alert("Failed to scrub the file!");
+                }
+            });
+        });
+
+        $('#sendOptionSelector').change(function () {
+            const selectedOption = $(this).val();
+
+            if (selectedOption === 'file') {
+
+                // Fetch files and populate fileSelector
+                $.get(`/api/user/files`, function (data) {
+                    console.log(data);
+                    let fileSelector = $('#fileSelector');
+                    $('#sendFileForm').show();    // Show file send form
+                    $('#sendAppForm').hide();    // Hide app send form
+                    $('#sendMoneyForm').hide();   // Hide money send form
+
+                    fileSelector.empty().append(`<option value="">Select file</option>`);
+                    data.files.forEach(file => {
+                        fileSelector.append(`<option value="${file.id}">${file.name}</option>`);
+                    });
+                    fileSelector.show();  // Show the file selector
+                });
+            } else if (selectedOption === 'app') {
+
+                // Fetch files and populate fileSelector
+                $.get(`/api/user/apps`, function (data) {
+                    console.log(data);
+                    let appSelector = $('#appSelector');
+                    $('#sendFileForm').hide();    // Hide file send form
+                    $('#sendAppForm').show();    // Show app send form
+                    $('#sendMoneyForm').hide();   // Hide money send form
+
+                    appSelector.empty().append(`<option value="" hidden>Select app</option>`);
+                    data.apps.forEach(app => {
+                        appSelector.append(`<option value="${app.id}">${app.name}</option>`);
+                    });
+                    appSelector.show();  // Show the file selector
+                });
+            } else {
+
+                $('#sendFileForm').hide();    // Hide file send form
+                $('#sendAppForm').hide();    // Hide app send form
+                $('#sendMoneyForm').show();   // Show money send form
+            }
+        });
+
+        // Listen to changes in the fileSelector
+        $('#fileSelector').change(function () {
+            if ($(this).val()) {
+                $('#sendFileButton').show();
+            } else {
+                $('#sendFileButton').hide();
+            }
+        });
+
+
+
+        const receiverIdInput = document.getElementById('receiverId');
+
+        // Handle the form submission
+        $('#sendFileForm').submit(function (event) {
+            event.preventDefault();  // Prevent the form from actually submitting
+
+            let fileId = $('#fileSelector').val();
+
+            // Fetch the selected targetUserId from the receiverIdInput value
+            let targetUserId = receiverIdInput.value;
+            if (!targetUserId) {
+                alert('Please select a target user first.');
+                return;
+            }
+
+
+            $.ajax({
+                url: '/api/send_file',
+                type: 'POST',
+                data: JSON.stringify({
+                    fileId: fileId,
+                    senderId: loggedInUserId,
+                    targetUserId: targetUserId
+                }),
+                contentType: 'application/json',
+                success: function (response) {
+                    if (response.success) {
+                        // remove file from inventory
+                        $(`#file-item-${fileId}`).remove();
+                        $('#fileSelector').val("");
+                        unselectUser();
+                        // Display the message in the div
+                        $('#transactionStatusText').text('File sent successfully!').fadeIn();
+
+                        // Hide the message after 5 seconds
+                        setTimeout(function () {
+                            $('#transactionStatusText').fadeOut();
+                        }, 5000);
+                    } else {
+                        alert('Error sending file: ' + response.message);
+                    }
+                }
+            });
+
+        });
+
+        $('#sendAppForm').submit(function (event) {
+            event.preventDefault();  // Prevent the form from actually submitting
+
+            let appId = $('#appSelector').val();
+
+            // Fetch the selected targetUserId from the receiverIdInput value
+            let targetUserId = receiverIdInput.value;
+            if (!targetUserId) {
+                alert('Please select a target user first.');
+                return;
+            }
+
+
+            $.ajax({
+                url: '/api/send_app',
+                type: 'POST',
+                data: JSON.stringify({
+                    appId: appId,
+                    senderId: loggedInUserId,
+                    targetUserId: targetUserId
+                }),
+                contentType: 'application/json',
+                success: function (response) {
+                    if (response.success) {
+                        let appName = $('#appSelector option:selected').text().split('_')[0];
+                        // remove file from inventory
+                        //$(`#file-item-${fileId}`).remove();
+                        $('#appSelector').val("");
+                        let appCount = parseInt($(`#count-${appName}`).html());
+                        if (appCount > 1) {
+                            $(`#count-${appName}`).html((appCount-1).toString());
+                        } else {
+                            $(`#row-${appName}`).remove();
+                        }
+                        unselectUser();
+                        // Display the message in the div
+                        $('#transactionStatusText').text('File sent successfully!').fadeIn();
+
+                        // Hide the message after 5 seconds
+                        setTimeout(function () {
+                            $('#transactionStatusText').fadeOut();
+                        }, 5000);
+                    } else {
+                        alert('Error sending file: ' + response.message);
+                    }
+                }
+            });
+
+        });
+    });
+
+    function selectUser(userId, userName) {
+        console.log(`Selected user: ${userName} with ID: ${userId}`);
+
+        // Update the hidden input with the selected user ID
+        document.getElementById('receiverId').value = userId;
+        document.getElementById('user_to_send_to').textContent = userName;
+
+        document.getElementById('money-transfer-container-selected').style.display = "block"
+        document.getElementById('money-transfer-container-unselected').style.display = "none"
+
+    }
+
+    function unselectUser() {
+        // Update the hidden input with the selected user ID
+        document.getElementById('receiverId').value = ''
+        document.getElementById('user_to_send_to').textContent = '';
+        document.getElementById('friend-list-selector').value = "";
+
+        document.getElementById('money-transfer-container-selected').style.display = "none"
+        document.getElementById('money-transfer-container-unselected').style.display = "block"
+    }
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const amountInput = document.getElementById('amount');
+        const sendButton = document.getElementById('sendButton');
+        const insufficientBalanceText = document.getElementById('insufficientBalanceText');
+
+        const receiverIdInput = document.getElementById('receiverId');
+        const receiverNameSpan = document.getElementById('user_to_send_to');
+        const selectedTrasferBlock = document.getElementById('money-transfer-container-selected')
+        const unselectedTransferBlock = document.getElementById('money-transfer-container-unselected')
+
+
+        amountInput.addEventListener('input', () => {
+            const amount = parseFloat(amountInput.value);
+            const balance = parseFloat("{{ balance }}");
+
+            if (isNaN(amount) || amount > balance || amount <= 0) {
+                sendButton.style.display = 'none';
+                insufficientBalanceText.style.display = 'block';
+            } else {
+                sendButton.style.display = 'block';
+                insufficientBalanceText.style.display = 'none';
+            }
+        });
+
+        const sendMoneyForm = document.getElementById('sendMoneyForm');
+        const transactionStatusText = document.getElementById('transactionStatusText');
+
+        sendMoneyForm.addEventListener('submit', (event) => {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(sendMoneyForm);
+            let object = {};
+            formData.forEach((value, key) => { object[key] = value });
+            console.log(JSON.stringify(object));
+            const senderId = document.getElementById('senderId').value;
+            const receiverId = document.getElementById('receiverId').value;
+
+            if (!senderId || !receiverId) {
+                transactionStatusText.style.display = 'block';
+                transactionStatusText.textContent = 'Sender or Receiver ID is missing!';
+                transactionStatusText.classList.remove('cyberpunk-success');
+                return;
+            }
+
+            fetch('/transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(object)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    transactionStatusText.style.display = 'block';
+
+                    // If there's a message in the response:
+                    if (data.message) {
+                        transactionStatusText.textContent = data.message;
+
+                        if (data.class) {
+                            transactionStatusText.classList.add(data.class);
+                            // Clear the selected user
+                            unselectUser();
+
+                        }
+
+                        // Update the balance displayed on the frontend
+                        if (data.new_balance !== undefined) {
+                            document.getElementById("userBalance").textContent = data.new_balance;
+                        }
+
+                    } else {
+                        transactionStatusText.textContent = data.error;
+                        transactionStatusText.classList.remove('cyberpunk-success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    transactionStatusText.style.display = 'block';
+                    transactionStatusText.textContent = 'An error occurred!';
+                    transactionStatusText.classList.remove('cyberpunk-success');
+                });
+
+        });
+    });
+
+
+</script>
+
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{
+  "name": "cplarpware",
+  "version": "1.0.0",
+  "description": "Cyberpunk LARP helper software",
+  "main": "home.html",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "augmented-ui": "^2.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GepSaman/CyberpunkLarpWare.git"
+  },
+  "keywords": [
+    "cyberpunk",
+    "larp",
+    "netrunner",
+    "node",
+    "market",
+    "messaging",
+    "banking"
+  ],
+  "author": "Tibor Pongrácz, Sándor Mesterházi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GepSaman/CyberpunkLarpWare/issues"
+  },
+  "homepage": "https://github.com/GepSaman/CyberpunkLarpWare#readme"
+}

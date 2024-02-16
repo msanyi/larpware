@@ -1,0 +1,132 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Users & Balances{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div class="container" style="display:flex;">
+    <div class="console-text" id="userOperations">
+        <h2 class="futuristic-text">Add User</h2>
+        <form action="/admin/add_user" method="POST" id="add-user-form">
+            <label for="new_username">Username:</label><br>
+            <input class="chrome-box console-text" type="text" id="new_username" name="new_username"><br>
+            <label for="new_password">Password:</label><br>
+            <input class="chrome-box console-text" type="password" id="new_password" name="new_password"><br>
+            <label for="is_admin">Admin:</label><input type="checkbox" id="is_admin" name="is_admin">
+            <label for="is_npc">NPC:</label><input type="checkbox" id="is_npc" name="is_npc"><br>
+            <label for="is_netrunner">Netrunner:</label><input type="checkbox" id="is_netrunner" name="is_netrunner">
+            <label for="is_fixer">Fixer:</label><input type="checkbox" id="is_fixer" name="is_fixer"><br>
+            <!-- Placeholder for organizations dropdown -->
+            <select class="chrome-box futuristic-text" name="organization_id" id="organization_id">
+                {% for org in org_list %}
+                <option value="{{org.id}}">{{org.name}}</option>
+                {% endfor %}
+            </select>
+            <br><br>
+            <input class="large-button futuristic-text" type="submit" value="Add User">
+        </form>
+        <h2 class="futuristic-text">Modify Balance</h2>
+        <form action="/modify_balance" method="POST">
+            <label for="user_id">User ID:</label><br>
+            <input class="chrome-box console-text" type="text" id="user_id" name="user_id"><br>
+            <label for="new_balance">New Balance:</label><br>
+            <input class="chrome-box console-text" type="number" id="new_balance" name="new_balance"><br><br>
+            <input class="large-button futuristic-text" type="submit" value="Modify Balance">
+        </form>
+        <h2 class="futuristic-text">Add to organization</h2>
+        <form action="/org_add" method="POST">
+            <label for="user_id">User ID:</label><br>
+            <input class="chrome-box console-text" type="text" id="user_id" name="user_id"><br>
+            <select class="chrome-box futuristic-text" name="organization_id" id="organization_id">
+                {% for org in org_list %}
+                <option value="{{org.id}}">{{org.name}}</option>
+                {% endfor %}
+            </select>
+            <br><br>
+            <input class="large-button futuristic-text" type="submit" value="Add to organization">
+        </form>
+    </div>
+    <div id="userlist" style="overflow-y: scroll; max-height: 80vh;">
+        <h2 class="futuristic-text">User List</h2>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>CityNet</th>
+                <th>Passch.</th>
+                <th>Balance</th>
+                <th>Admin</th>
+                <th>NPC</th>
+                <th>Fixer</th>
+                <th>Netrunner</th>
+                <th>Wound state</th>
+                <th>Organizations</th>
+                <th>Temporary organizations</th>
+            </tr>
+            {% for user in users %}
+            <tr class="{{ loop.cycle('futuristic-text', '') }}">
+                <td class="bold">{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.citynet }}</td>
+                <td>{{ "Yes" if user.passchanged else "No" }}</td>
+                <td>{{ user.balance }}</td>
+                <td>{{ "Yes" if user.is_admin else "No" }}</td>
+                <td>{{ "Yes" if user.is_npc else "No" }}</td>
+                <td>{{ "Yes" if user.is_fixer else "No" }}</td>
+                <td>{{ "Yes" if user.is_netrunner else "No" }}</td>
+                <td>{{ user.wound}}</td>
+                <td>{{ user.organizations}}</td>
+                <td>{{ user.temp_organizations}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block script %}
+<script>
+    // Wait for the document to be fully loaded
+    $(document).ready(function () {        
+        // Intercept the "Add User" form submission
+        $("#add-user-form").submit(function (event) {
+            // Prevent the default form submission behavior
+            event.preventDefault();
+
+            // Gather the form data and convert it to JSON format
+            var formData = {
+                'new_username': $("#new_username").val(),
+                'new_password': $("#new_password").val(),
+                'is_admin': $("#is_admin").prop('checked'),
+                'is_netrunner': $("#is_netrunner").prop('checked'),
+                'is_npc': $("#is_npc").prop('checked'),
+                'is_fixer': $("#is_fixer").prop('checked'),
+                'organization_id': $("#organization_id").val()  // Add the organization_id to the formData
+            };
+
+            // Send the data as an AJAX POST request
+            $.ajax({
+                type: "POST",
+                url: "/admin/add_user",
+                data: JSON.stringify(formData),
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.error) {
+                        alert(response.error);
+                    } else {
+                        alert(response.message);  // Use the 'message' from the server's response
+                        location.reload(); // Reload the page to see the updated user list
+                    }
+                },
+                error: function (response) {
+                    alert("An error occurred: " + response.responseText);
+                }
+            });
+        });
+    });
+
+</script>
+{% endblock %}

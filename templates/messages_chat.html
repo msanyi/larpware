@@ -1,0 +1,103 @@
+{% extends 'base_frame.html' %}
+
+
+{% block header %}
+<div class="futuristic-text"><a class="hoverglitch" data-text="Back to Messages"
+        href="{{ url_for('user_app.messaging_app.messages_page') }}"> <-- Back to Messages</a>
+</div>
+<h1 class="futuristic-text">{% block title %}{{contact.username}}{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
+<div id="reply" class="console-text">
+    <textarea id="reply-content" class="console-text chrome-box" maxlength=300 rows="3" cols="45"
+        oninput="countCharacters('reply-content', 'reply-counter')" placeholder="type your message..."></textarea>
+    <div class="console-text reply-box-status"><button id="send-button" onclick="sendMessage()"
+            class="futuristic-text large chrome-box" style="display:none">&nbsp;Send&nbsp;</button>
+        <div><span id="reply-counter">0</span>/300</div>
+    </div>
+</div>
+
+<div id="messages" class="flex-container">
+
+</div>
+
+{% if success_message %}
+<script>
+    alert('{{ success_message }}');
+</script>
+{% endif %}
+<script>
+
+    var lastRefreshedAt = 0;
+    var messagePollingInterval = setInterval(function () {
+        console.log("calling regular poll interval")
+        $.get(`/messages/poll?contact_id={{contact.id}}&since=${lastRefreshedAt}`, function (data) {
+            if (data.reload_required == true) {
+                loadMessages();
+            }
+        });
+    }, 5000)
+
+    $(document).ready(function () {
+        loadMessages();
+    })
+
+    function loadMessages() {
+        $.get('/messages/load/{{contact.id}}', function (data) {
+            let messageList = $('#messages');
+            messageList.empty();  // Clear any previous items
+            lastRefreshedAt = data.loaded;
+            data.messages.forEach(message => {
+                if (message.system == 1) {
+                    messageList.append(`<div class="futuristic-text centered">${message.messagecontent}</div>`);
+                } else {
+                    if (message.sender === '{{contact.username}}') {
+                        messageList.append(`<div class="message-bubble-partner console-text">${message.messagecontent}</div>`);
+                    } else {
+                        messageList.append(`<div class="message-bubble-you console-text">${message.messagecontent}</div>`);
+                    }
+                }
+            });
+        });
+    }
+
+    function sendMessage() {
+        console.log("sendMessage called.");  // Log when the function is called.
+        const recipient = '{{contact.username}}';
+        const content = document.getElementById('reply-content').value;
+
+        const data = new FormData();
+        data.append('receiver_username', recipient);
+        data.append('message', content);
+
+        fetch('/send_message', {
+            method: 'POST',
+            body: data,
+        }).then(response => response.json()).then(data => {
+            document.getElementById('reply-content').value = "";
+            loadMessages();
+        }).catch(error => {
+            document.getElementById('message-status').textContent = 'Error: ' + error;
+        });
+    }
+
+    // Function to count characters in the input field
+    function countCharacters(inputId, counterId) {
+        const maxLength = 300;
+        const inputField = document.getElementById(inputId);
+        const currentLength = inputField.value.length;
+        const remaining = maxLength - currentLength;
+        document.getElementById(counterId).textContent = currentLength.toString();
+        sendButton = document.getElementById('send-button');
+        if (currentLength > 0) {
+            sendButton.style.display = "";
+        } else {
+            sendButton.style.display = "none";
+        }
+    }
+</script>
+
+{% endblock %}

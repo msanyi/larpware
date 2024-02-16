@@ -1,0 +1,306 @@
+{% extends 'admin_base_frame.html' %}
+
+{% block title %}NPC Messenger{% endblock %}
+
+{% macro NpcSelector(num) -%}
+<select id="npc-selector-{{num}}" class="chrome-box x-large futuristic-text"
+    onchange="if (this.selectedIndex > -1) { openCardsView('{{num}}'); }">
+    <option value="" disabled selected hidden> Select NPC...</option>
+    {% for npc in npc_users %}
+    <option value="{{npc.id}}">{{
+        npc.username }}</option>
+    {% endfor %}
+</select>
+{%- endmacro %}
+
+{% macro CardsView(num) -%}
+<div id="cards-view-{{num}}" style="display: none;">
+    <button id="open-composer-button-{{num}}" onclick="openComposer('{{num}}')"
+        class="futuristic-text chrome-box">Compose message</button>
+    <button id="close-composer-button-{{num}}" onclick="closeComposer('{{num}}')" class="futuristic-text chrome-box"
+        style="display:none">Close (X)</button>
+    <div id="compose-message-section-{{num}}" class="message-section chrome-box" style="display:none">
+        <!-- Styling input elements with chrome-box -->
+        <div class="console-text">To: <select id="friend-list-selector-{{num}}" class="chrome-box futuristic-text"
+                onchange="if (this.selectedIndex > -1) { selectRecipient(this.options[this.selectedIndex].text, '{{num}}'); }">
+                <option value="" disabled selected hidden> </option>
+
+            </select><span id="message-recipient-{{num}}" class="futuristic-text"></span>
+            <button id="unselectButton-{{num}}" onclick="unselectRecipient('{{num}}')"
+                class="futuristic-text chrome-box" style="display:none;">X</button>
+        </div>
+        <label for="message-content-{{num}}" class="console-text">Message:<br /></label>
+        <textarea id="message-content-{{num}}" class="console-text chrome-box" maxlength=300 rows="7" cols="45"
+            oninput="countCharacters('message-content-{{num}}', 'char-counter-{{num}}')"></textarea>
+        <p class="console-text"><span id="char-counter-{{num}}">300</span>/300</p>
+        <button onclick="sendComposedMessage('{{num}}')" class="futuristic-text chrome-box">Send</button>
+        <p id="message-status-{{num}}" class="futuristic-text"></p>
+    </div>
+    <div id="cards-section-{{num}}">
+
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro ChatView(num) -%}
+<div id="chat-view-{{num}}" style="display: none;">
+    <button onclick="openCardsView('{{num}}')" id="back-button-{{num}}" class="chrome-box futuristic-text">&lt;&lt;Back
+        to Messages</button>
+    <h2 id="chat-contact-name-{{num}}" class="bold futuristic-text"></h2>
+    <input type="hidden" id="chat-contact-id-{{num}}">
+    <div id="reply-{{num}}" class="console-text">
+        <textarea id="reply-content-{{num}}" class="console-text chrome-box" maxlength=300 rows="3" cols="45"
+            oninput="countCharacters('reply-content-{{num}}', 'reply-counter-{{num}}')"
+            placeholder="type your message..."></textarea>
+        <div class="console-text reply-box-status"><button id="send-button-{{num}}" onclick="sendChatMessage('{{num}}')"
+                class="futuristic-text large chrome-box">&nbsp;Send&nbsp;</button>
+            <div><span id="reply-counter-{{num}}">0</span>/300</div>
+        </div>
+    </div>
+
+    <div id="messages-{{num}}" class="flex-container">
+
+    </div>
+</div>
+{%- endmacro %}
+
+
+{% block content %}
+<div class="flex-container">
+    <div id="messenger-1" style="width: 450px;">
+        {{ NpcSelector('1') }}
+        {{ CardsView('1') }}
+        {{ ChatView('1') }}
+    </div>
+    <div id="messenger-2" style="width: 450px;">
+        {{ NpcSelector('2') }}
+        {{ CardsView('2') }}
+        {{ ChatView('2') }}
+    </div>
+    <div id="messenger-3" style="width: 450px;">
+        {{ NpcSelector('3') }}
+        {{ CardsView('3') }}
+        {{ ChatView('3') }}
+    </div>
+    <div id="messenger-4" style="width: 450px;">
+        {{ NpcSelector('4') }}
+        {{ CardsView('4') }}
+        {{ ChatView('4') }}
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+
+    var lastRefreshedAt = [0, 0, 0, 0];
+
+    function updateLastRefresh(viewNum, timestamp) {
+        lastRefreshedAt[parseInt(viewNum) - 1] = timestamp;
+    }
+    var messagePollingInterval = setInterval(function () {
+        //TODO four-part polling
+        console.log("calling regular poll interval")
+        var data = [];
+        for (var i = 1; i <= 4; i++) {
+            data.push({
+                type: getViewState(i.toString()),
+                npc: $(`#npc-selector-${i.toString()}`).val(),
+                contact: $(`#chat-contact-id-${i.toString()}`).val(),
+                since: lastRefreshedAt[i - 1]
+            })
+        }
+
+        fetch('/admin/messages/poll', {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data),
+        }).then(response => response.json()).then(data => {
+            for (const [index, refreshNeeded] of data.entries()) {
+                console.log("refresh index", index, refreshNeeded);
+                if (refreshNeeded === true) {
+                    refreshView((index + 1).toString());
+                }
+            }
+        }).catch(error => {
+            console.log(error)
+        });
+    }, 5000)
+
+    function openCardsView(viewNum) {
+        $(`#cards-view-${viewNum}`).show();
+        $(`#chat-view-${viewNum}`).hide();
+        var npc_id = $(`#npc-selector-${viewNum}`).val();
+
+        $.get(`/admin/messages/friendlist/${npc_id}`, function (data) {
+            let friendsList = $(`#friend-list-selector-${viewNum}`);
+            friendsList.empty();  // Clear any previous items
+            data.forEach(friend => {
+                friendsList.append($('<option>', {
+                    value: friend.id,
+                    text: friend.username
+                }));
+            });
+        });
+        loadMessageCards(viewNum);
+    }
+
+    function openChatView(viewNum, contact_id, contact_name) {
+        $(`#chat-contact-name-${viewNum}`).text(contact_name);
+        $(`#chat-contact-id-${viewNum}`).val(contact_id);
+        $(`#cards-view-${viewNum}`).hide();
+        $(`#chat-view-${viewNum}`).show();
+
+        loadChat(viewNum, contact_id, contact_name);
+    }
+
+    function loadMessageCards(viewNum) {
+        var npc_id = $(`#npc-selector-${viewNum}`).val();
+
+        $.get(`/admin/messages/load-cards/${npc_id}`, function (data) {
+            let messageList = $(`#cards-section-${viewNum}`);
+            messageList.empty();  // Clear any previous items
+            updateLastRefresh(viewNum, data.loaded);
+            data.messages.forEach(message => {
+                if (parseInt(message.sender_id) === parseInt(npc_id)) {
+                    //you sent the last message
+                    messageList.append(`<div class="chrome-box hover-glitch-border" onclick="openChatView('${viewNum}','${message.receiver_id}','${message.receiver_name}')">
+            <div class="futuristic-text ${message.unreads > 0 ? " bold" : ""}">${message.receiver_name} ${message.unreads > 0 ? `(${message.unreads})` : ""}</div>
+                <div class="console-text ${message.unreads > 0 ? " bold" : ""}">
+                You: ${message.message_content}
+                </div>
+            </div>`)
+                } else {
+                    //contact sent the last message
+                    messageList.append(`<div class="chrome-box hover-glitch-border" onclick="openChatView('${viewNum}','${message.sender_id}','${message.sender_name}')">
+            <div class="futuristic-text ${message.unreads > 0 ? " bold" : ""}">${message.sender_name} ${message.unreads > 0 ? `(${message.unreads})` : ""}</div>
+                <div class="console-text ${message.unreads > 0 ? " bold" : ""}">
+                ${message.message_content}
+                </div>
+            </div>`)
+                }
+            });
+        });
+    }
+
+    function loadChat(viewNum) {
+        var npc_id = $(`#npc-selector-${viewNum}`).val();
+        var contact_id = $(`#chat-contact-id-${viewNum}`).val();
+        $.get(`/admin/messages/load/${npc_id}/${contact_id}`, function (data) {
+            let messageList = $(`#messages-${viewNum}`);
+            messageList.empty();  // Clear any previous items
+            updateLastRefresh(viewNum, data.loaded);
+            data.messages.forEach(message => {
+                if (message.system == 1) {
+                    messageList.append(`<div class="futuristic-text centered">${message.messagecontent}</div>`);
+                } else {
+                    if (message.sender != npc_id) {
+                        messageList.append(`<div class="message-bubble-partner console-text">${message.messagecontent}</div>`);
+                    } else {
+                        messageList.append(`<div class="message-bubble-you console-text">${message.messagecontent}</div>`);
+                    }
+                }
+            });
+        });
+    }
+
+    function openComposer(viewNum) {
+        document.getElementById(`open-composer-button-${viewNum}`).style.display = 'none';
+        document.getElementById(`close-composer-button-${viewNum}`).style.display = 'block';
+        document.getElementById(`compose-message-section-${viewNum}`).style.display = 'block';
+    }
+
+    function closeComposer(viewNum) {
+        unselectRecipient(viewNum);
+        document.getElementById(`open-composer-button-${viewNum}`).style.display = 'block';
+        document.getElementById(`close-composer-button-${viewNum}`).style.display = 'none';
+        document.getElementById(`compose-message-section-${viewNum}`).style.display = 'none';        
+    }
+
+    function selectRecipient(username, viewNum) {
+        console.log("selectRecipient called with argument: " + username);  // Log when the function is called.
+        document.getElementById(`message-recipient-${viewNum}`).textContent = username;
+        document.getElementById(`friend-list-selector-${viewNum}`).style.display = "none";
+        document.getElementById(`unselectButton-${viewNum}`).style.display = "inline-block";
+    }
+
+    function unselectRecipient(viewNum) {
+        document.getElementById(`message-recipient-${viewNum}`).textContent = "";
+        document.getElementById(`friend-list-selector-${viewNum}`).value = "";
+        document.getElementById(`friend-list-selector-${viewNum}`).style.display = "inline-block";
+        document.getElementById(`unselectButton-${viewNum}`).style.display = "none";
+
+    }
+
+    function sendComposedMessage(viewNum) {
+        var npc_id = $(`#npc-selector-${viewNum}`).val();
+        var contact_id = $(`#friend-list-selector-${viewNum}`).val();
+        var message = $(`#message-content-${viewNum}`).val();
+        sendMessage(viewNum, npc_id, contact_id, message)
+        document.getElementById(`message-content-${viewNum}`).value = '';
+        document.getElementById(`char-counter-${viewNum}`).textContent = "300";
+        closeComposer(viewNum);
+    }
+
+    function sendChatMessage(viewNum) {
+        var npc_id = $(`#npc-selector-${viewNum}`).val();
+        var contact_id = $(`#chat-contact-id-${viewNum}`).val();
+        var message = $(`#reply-content-${viewNum}`).val();
+        sendMessage(viewNum, npc_id, contact_id, message)
+        document.getElementById(`reply-content-${viewNum}`).value = '';
+        document.getElementById(`reply-counter-${viewNum}`).textContent = "300";
+    }
+
+    function refreshView(viewNum) {
+        var viewState = getViewState(viewNum);
+        switch (viewState) {
+            case "Card":
+                loadMessageCards(viewNum);
+                break;
+            case "Chat":
+                loadChat(viewNum);
+                break;
+            default:
+                break;
+        }
+    }
+
+    function getViewState(viewNum) {
+        if ($(`#cards-view-${viewNum}`).is(":visible")) {
+            return "Card";
+        } else if ($(`#chat-view-${viewNum}`).is(":visible")) {
+            return "Chat";
+        } else {
+            return "None";
+        }
+    }
+
+    function sendMessage(viewNum, npc_id, contact_id, message) {
+        console.log("sendMessage called.");  // Log when the function is called.
+        const data = { from: npc_id, to: contact_id, message: message };
+
+        fetch('/admin/send_message', {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data),
+        }).then(response => response.json()).then(data => {
+            refreshView(viewNum);
+        }).catch(error => {
+
+        });
+    }
+    // Function to count characters in the input field
+    function countCharacters(inputId, counterId) {
+        const maxLength = 300;
+        const inputField = document.getElementById(inputId);
+        const currentLength = inputField.value.length;
+        const remaining = maxLength - currentLength;
+        document.getElementById(counterId).textContent = remaining.toString();
+    }
+</script>
+{% endblock %}

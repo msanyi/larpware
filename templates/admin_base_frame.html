@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-color-theme="console-green">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
+    <title>{% block title %}{% endblock %} - FLAT/LINE ADMIN</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+
+<nav class="nav-bar futuristic-text large">
+
+    <div> <a href="{{ url_for('admin_app.admin') }}">USERS</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_network_creator') }}">CREATE NETWORK</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_netmod_app.network_modifier') }}">MODIFY NETWORK</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_market_app.manage_market') }}">DIGITAL MARKET</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_couriertasks.list_tasks') }}">COURIER ORDERS</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_qrmanager_app.admin_qrmanager') }}">QR CODES</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_envelopes.envelopes') }}">ENVELOPES</a> |</div>
+    <div> <a href="{{ url_for('admin_app.admin_messaging_app.messages_page') }}">NPC MESSAGING</a> |</div>
+</nav>
+<section class="content">
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% block content %}{% endblock %}
+</section>
+
+{% block script %}{% endblock %}
+
+</html>

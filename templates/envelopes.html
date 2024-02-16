@@ -1,0 +1,65 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}Borítékjaid{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+<div class="chrome-box">
+    <a href="{{ url_for('user_app.home') }}" class="futuristic-text chrome-box">Home</a>
+    <div id="envelopes-list">
+        {% for envelope in envelopes %}
+        <div class="chrome-box">
+            <span class="futuristic-text">Boríték #{{ envelope.number }}</span>
+            <br>
+            <span id="envelope-condition-{{ envelope.id }}" class="console-text">Nyisd ki, ha {{
+                envelope.opening_condition }}</span>
+            <button id="open-button-{{ envelope.id }}" class="console-text chrome-box"
+                onclick="confirmAndOpenEnvelope({{ envelope.id }})" {% if envelope.opened %}style="display:none" {%
+                endif %}>Kinyitom!</button>
+            <div id="envelope-content-{{ envelope.id }}" class="console-text chrome-box" {% if not envelope.opened
+                %}style="display:none" {% endif %}>
+                {% if envelope.opened %}
+                {{ envelope.content | safe}}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    function confirmAndOpenEnvelope(envelopeId) {
+        const isConfirmed = confirm("Do you really want to open this envelope?");
+        if (isConfirmed) {
+            openEnvelope(envelopeId);
+        }
+    }
+
+    function openEnvelope(envelopeId) {
+        // Send a POST request to the server to open the envelope
+        fetch(`/envelopes/open/${envelopeId}`, {
+            method: 'POST',
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    // Display the envelope content and hide the button
+                    document.getElementById(`envelope-content-${envelopeId}`).innerHTML = data.content;
+                    document.getElementById(`envelope-content-${envelopeId}`).style.display = 'block';
+                    document.getElementById(`open-button-${envelopeId}`).style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while opening the envelope.');
+            });
+    }
+
+</script>
+{% endblock %}

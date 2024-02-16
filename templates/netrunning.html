@@ -1,0 +1,1190 @@
+<!-- netrunning.html -->
+<!DOCTYPE html>
+<html lang="en" data-color-theme="{{headerinfo.theme}}">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='heart_monitor.css') }}">
+    <title>Network Page</title>
+</head>
+
+<body class="chrome-box">
+
+    <div class="console-text">Connected to network:</div>
+    <div class="large bold futuristic-text"> {{ data.network.name }} </div>
+    <div id="welcome-message" class="cyberpunk-success" style="display: none;">
+        Welcome home, network operator <span id="username-placeholder"></span>!
+    </div>
+    <h4>Node: {{data.node.order}}.{{ data.node.name }} <br />
+        Class: <span {{'class="cyberpunk-error"' if data.node_type.name == "Black IC"}}> {{ data.node_type.name }} </span> <br/>
+        Status: <span id="node-status-display" class="{{ ' cyberpunk-error' if data.node.is_cracked
+            else 'cyberpunk-success' }}">{{ "cracked" if data.node.is_cracked else "operational" }}</span></h4>
+    <div class="centered chrome-box">
+        <div class="console-text">Biomonitor active, current status is</div>
+        <div id="wound-tracker" class="wound-{{health}}">
+            <span id="state-name">{{display_state}}</span> -
+            <span id="state-text">
+                {% if health == "unhurt" %}
+                Vital signs nominal.
+                {% elif health == 'wounded' %}
+                Serious injury detected.
+                {% elif health == 'dying' %}
+                Immediate medical attention required.
+                {% elif health == 'dead' %}
+                Vital signs ceased.
+                {% endif %}
+            </span>
+        </div>
+        <div class="container">
+            <div class="grid">
+                <div class="col-10_sm-12 graph" data-state="{{health}}">
+                    <div class="cell cell-1" data-state="{{health}}"></div>
+                    <div class="cell cell-2" data-state="{{health}}"></div>
+                    <div class="cell cell-3" data-state="{{health}}"></div>
+                    <div class="cell cell-4" data-state="{{health}}"></div>
+                    <div class="cell cell-5" data-state="{{health}}"></div>
+                    <div class="cell cell-6" data-state="{{health}}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="networkMessages" class="cyberpunk-error">
+        <!-- Messages will be inserted here by JavaScript -->
+    </div>
+
+    <!-- ************* IC warning messages ************* -->
+    <div id="ic-timer-container" class="cyberpunk-error" style="display: none;">
+        <span id="ic-timer"></span>
+    </div>
+
+    <!-- ************* Welcome message ************* -->
+
+
+    <div id="trojan-message" class="cyberpunk-error" style="display: none;">
+        Trojan infection detected!
+    </div>
+
+    <div class="button-row">
+        <button id="exit-network" class="chrome-box futuristic-text">Close connection and exit</button>
+
+        {% if data.prev_node_id is not none and data.prev_node_id != 'null' %}
+        <button onclick="location.href='{{ url_for('user_app.netrunning.netrunning', node_id=data.prev_node_id) }}'"
+            class="chrome-box futuristic-text"> &lt;&lt; Previous node</button>
+        {% endif %}
+
+
+        {% if data.next_node_id is not none and data.next_node_id != 'null' %}
+        <button id="nextNodeButton" style="display: none;"
+            onclick="location.href='{{ url_for('user_app.netrunning.netrunning', node_id=data.next_node_id) }}'"
+            class="chrome-box futuristic-text">Next node &gt;&gt;</button>
+        {% endif %}
+    </div>
+
+    <div id="pvp-prompt-container">
+
+    </div>
+
+    <div id="downloadable-files" class="chrome-box"> Files stored in this node:
+        <ul id="file-list" class="futuristic-text">
+            <!-- file list will be populated here -->
+        </ul>
+    </div>
+
+    <br>
+
+    <div class="chrome-box">
+        <h4 class="futuristic-text">Actions available for this node:</h4>
+        <div id="inventory-actions" class="console-text">
+
+        </div>
+    </div>
+
+    <div id="netrunner-interaction-section" class="chrome-box">
+        <p class="futuristic-text">Other users in node:</p>
+        <div id="nodeUsers">
+            <!-- Users will be dynamically added or removed from the list -->
+        </div>
+        <p class="futuristic-text">Other users in network:</p>
+        <div id="usersList" class="futuristic-text">
+            <!-- Users will be dynamically added or removed from the list -->
+        </div>
+    </div>
+
+
+    <div id="node-details" class="chrome-box">
+        <h4 class="futuristic-text">{{ data.node_type.name }} node details:</h4>
+        <div class="console-text">{{ data.node_description }}</div>
+    </div>
+
+    <div class="chrome-box">
+        <h4 class="futuristic-text">Apps currently in your inventory:</h4>
+        <table id="inventory-apps" class="console-text">
+
+        </table>
+    </div>
+    <script>
+
+        var data = JSON.parse('{{ data|tojson|safe }}');
+        // console.log(data);
+
+        // Accessing various properties from the parsed data:
+        var network = data.network;
+        var organization = data.organization;
+        var node = data.node;
+        var nodeType = data.node_type;
+        var usersInNode = data.users_in_node;
+        var nextNodeId = data.next_node_id;
+        var prevNodeId = data.prev_node_id;
+        var userId = data.user_id;
+        var currentUser = data.user_id;
+        var userOrganizationIds = data.user_organization_ids;
+        var nodeId = data.node_id;
+        var qrcode = data.qrcode;
+        var nodeDescription = data.node_description;
+        var server_messages = data.server_messages;
+        var cloak_data = data.cloak_data
+        var metUsers = data.met_users_dict || {}; // Ensure metUsers is always an object.
+        var is_home_user = data.is_home_user
+        var is_cracked = data.is_cracked;
+
+
+        // console.log("currentUser:", currentUser);
+        // example access to this data:
+        // console.log("Organization:", organization);
+        console.log("page init, is_cracked:", is_cracked);
+        // console.log("Network:", network);
+        // console.log("userOrganizationIds:", userOrganizationIds);
+        // console.log("is_home_user:", is_home_user);
+        // console.log("Node:", node);
+        // console.log("NodeType:", nodeType);
+        // console.log("Users in Node:", usersInNode);
+        // console.log("Next Node ID:", nextNodeId);
+        // console.log("Previous Node ID:", prevNodeId);
+        // console.log("Inventory Apps:", inventoryApps);
+        // console.log("User ID:", userId);
+        // console.log("Node ID:", nodeId);
+        // console.log("QR Code:", qrcode);
+        // console.log("Node Description:", nodeDescription);
+        //console.log("metUsers dictionary: ", metUsers);
+
+        let eventSource; // Globally declare the eventSource variable
+        let userLeaveTimers = {} //key is metUser ID, value is a timer id to remove user boxes
+        let pvpResponseTimers = {} //key is the user ID of the attacker, value the time limit for the "do you wanna defend" prompt
+        let pvpResponseRemoveTimers = {} //key is the user ID of the attacker, value the timer to remove the "do you wanna defend" prompt
+        let pvpAttackTarget = undefined // user ID for the current outgoing attack
+        let pvpAttackTimer = undefined //timer IDd for the current outgoing attack
+        var playerInventory = {}; //key is app type name, value is quantity
+
+        //console.log("networkOrganizationId:", networkOrganizationId);
+        const networkOrganizationId = {{ data.network.organization_id|default ('undefined') }};
+        //const isHomeNetwork = userOrganizationIds.includes(networkOrganizationId);
+        const isHomeNetwork = userOrganizationIds.some(org => org.organization_id === networkOrganizationId);
+        const isTrojanPlanted = {{ data.is_trojan_planted|default (false) | tojson | safe }};
+
+        $(document).ready(function () {
+            let nodeStatus = data.node_status;
+            let nodeTypeId = data.node_type_id;
+            let is_cracked = data.is_cracked;
+            let is_home_user = data.is_home_user;
+            let nodeType = data.node_type.name;
+            console.log("nodeType:", nodeType);
+
+            updateNextNodeButtonVisibility(is_home_user, is_cracked, nodeType);
+            setupSSEConnection(userId);
+            //console.log("setupSSEConnection in document.addEventListener called ************ WORKING");
+            console.log("document.addEventListener function, is_cracked:", is_cracked);
+            //console.log("[nodeId]:", nodeId);
+            initiateIcCountdown();
+            updateInventoryApps();
+            updateOtherUsersLists(metUsers, network.id, userId);
+
+            // After page reload still displaying the message about someone used some app in the network:
+            const reloadMessage = sessionStorage.getItem("reloadMessage");
+            if (reloadMessage) {
+                pushNetworkMessage(reloadMessage);
+                sessionStorage.removeItem("reloadMessage"); // Clear the stored message
+            }
+
+
+
+            var cloakDataFromSession = cloak_data;
+            //console.log("cloakDataFromSession triggered *********** WORKING");
+            if (cloakDataFromSession) {
+                initCloakMessage(cloakDataFromSession, userId);
+            }
+
+            //Welcome message
+            console.log("networkOrganizationId:", JSON.stringify(networkOrganizationId));
+            console.log("userOrganizationIds:", JSON.stringify(userOrganizationIds));
+            console.log("Welcome message part in document.addEventListener called ************");
+
+            // Check if the user's organizations include the network's organization.
+            let isPartOfNetworkOrganization = userOrganizationIds.some(org => org.organization_id === networkOrganizationId);
+
+            if (isPartOfNetworkOrganization) {
+                // Display the welcome message and set the username.
+                const welcomeMessageElement = document.getElementById('welcome-message');
+                const usernamePlaceholder = document.getElementById('username-placeholder');
+
+                const username = "{{ data.user_dict.username }}";
+                usernamePlaceholder.textContent = username;
+
+                welcomeMessageElement.style.display = 'block';
+            }
+
+             //console.log("data node_type id:", data.node_type.id);
+            if (data.node_type.id === 6) {
+                fetchFileList(data.node_id);
+            } else {
+                // Optionally, hide the file list if the current node is not an Intel node
+                $('#downloadable-files').hide();
+            }
+
+            if (isTrojanPlanted) {
+            console.log("isTrojanPlanted called ************");
+            document.getElementById('trojan-message').style.display = 'block';
+            }
+        });
+
+        function setupSSEConnection(userId) {
+            //console.log("setupSSEConnection function called **************** WORKING");
+            // Close any existing eventSource if it's still open
+            if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
+                console.log("eventSource.close called");
+                eventSource.close();
+            }
+
+            eventSource = new EventSource(`/sse?user_id=${userId}`);
+
+            if (!window.EventSource) {
+                console.error("EventSource is not supported by this browser. Please consider using a modern browser.");
+                return;
+            }
+            eventSource.onopen = function (event) {
+                //console.log("SSE connection opened: **************** WORKING", event);
+            };
+
+
+
+            // ****************************************************************************************
+            // ****************************************************************************************
+            // ** This is the main eventsource handler function - this calls the other handlers too. **
+            // ****************************************************************************************
+            // ****************************************************************************************
+            eventSource.onmessage = function (event) {
+                // Log the received message
+                // console.log("Received SSE message: ***************** WORKING", event.data);
+
+                // Parse the received data
+                const eventData = JSON.parse(event.data);
+                if (!(eventData.message && eventData.message === "keep-alive")) {
+                    console.log("Received SSE message: ", event.data);
+                }
+
+
+                // Check for keep-alive message and ignore it if found
+                if (eventData.message && eventData.message === "keep-alive") {
+                    //console.log("Received keep-alive message.");
+
+                    $.ajax({
+                        url: '/acknowledge',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ user_id: userId, timestamp: new Date().getTime() }),  // YOUR_USER_ID replacement
+                        success: function (response) {
+                            //console.log('Keep-alive acknowledged:', response);
+                        },
+                        error: function (error) {
+                            console.error('Error acknowledging keep-alive:', error);
+                        }
+                    });
+
+                    return;
+                }
+
+                // Handle the cloak_data from the SSE message
+                if (eventData.data && eventData.data.cloak_data) {
+                    console.log("eventData cloak_data received:", eventData.data.cloak_data);
+                    handleCloakMessage(eventData.data.cloak_data);
+                    let date = new Date(eventData.data.cloak_data.timestamp); // use this to set White IC cloaking timer
+                    return;
+                }
+
+                if (eventData.data && eventData.data.event) {
+                    console.log("eventData tracer warning received:", eventData.data.event);
+                    handleCloakMessage(eventData.data.cloak_data);
+                    let date = new Date(eventData.data.cloak_data.timestamp); // use this to set White IC cloaking timer
+                    return;
+                }
+
+
+                // handle various event types
+                switch (eventData.event) {
+                    case 'leave_node':
+                        pushNetworkMessage("A user has left this Node.");
+                        break;
+                    case "app_used_update":
+                        updateNodeStatus(eventData.data.node_status);
+                        populateInventoryApps(eventData.data.inventory_apps);
+                        break;
+                    case "node_cracked":
+                        updateNodeStatus("cracked");
+                        break;
+                    case "node_restored":
+                        updateNodeStatus("operational");
+                        break;
+                    case "black_ic_hit":
+                        updateWoundTracker(eventData.data.state)
+                        if (eventData.data.state === "dying") {
+                            pushNetworkMessage('Your defense barriers were breached by the Black IC - extensive brain damage detected!');
+                        } else if (eventData.data.state === "dead") {
+                            pushNetworkMessage('Your defense barriers were breached by the Black IC - you have been flatlined...');
+                        } else {
+                            pushNetworkMessage('Your defense barriers were partially breached by the Black IC - serious brain damage detected!');
+                        }
+                        break;
+                    case "grey_ic_hit":
+                        pushNetworkMessage('An App has been destroyed by Grey IC!');
+                        break;
+                    case "white_ic_hit":
+                        pushNetworkMessage('Your identity has been traced and posted!');
+                        break;
+                    case "user_entered_node":
+                        pushNetworkMessage("A new user has entered this Node.");
+                        break;
+                    case "user_left_network":
+                        pushNetworkMessage("A user has disconnected from this Network.");
+                        let userElement = document.getElementById(`user_${eventData.data.user_id}`);
+                        if (userElement) {
+                            userElement.remove();
+                        }
+                        break;
+                    case "update_met_users":
+                        //this should automatically arrive on enter/leave events
+                        console.log("let's update met users, it should be fun")
+                        updateOtherUsersLists(eventData.data, network.id, userId);
+                        break;
+                    case "user_interaction":
+                        if (eventData.data.action === "used_app") {
+                            const appName = eventData.data.app_name;
+                            pushNetworkMessage(`User ${hashUserId(eventData.data.user_id)} used ${appName} in this network!`);
+                        }
+                        break;
+                    case "app_used_update":
+                        handleAppUsedUpdate(eventData.data);
+                        break;
+                    case "pvp_attack":
+                        //puts up a prompt to use Shield. eventData.app will give you the app type name and eventdata.attacker will give you the user id
+                        incomingPvpAttackPrompt(eventData.data);
+                        break;
+                    case "pvp_result":
+                        //TODO: handle the result of your outgoing attack. eventData.app will give you the app type name and eventdata.target will give you the user id
+                        // success is 0 if the defender blocked your attack, 1 if you hit
+                        $('.pvp-button').prop('disabled', true);
+                        pvpAttackTarget = undefined;
+                        if (eventData.data.success == 1) {
+                            let resultMessage = "Successful attack!";
+                            if (eventData.data.app === "Banhammer") {
+                                resultMessage += " User was ejected from network.";
+                            } else if (eventData.data.app === "Sword") {
+                                resultMessage += " Random App deleted from user.";
+                            } else if (eventData.data.app === "Zap") {
+                                resultMessage += " User was wounded.";
+                            }
+                            $(`#user_pvp_message_${eventData.data.target}`).text(resultMessage);
+                        } else {
+                            $(`#user_pvp_message_${eventData.data.target}`).text("Target blocked your attack!");
+                        }
+                        $('.pvp-button').removeAttr('disabled');
+                        break;
+                    case "pvp_hit":
+                        pvpHit(eventData.data);
+                        break;
+                    case "tracer_success":
+                        pushNetworkMessage(`Traced user: #${hashUserId(eventData.data.user_id)}/${eventData.data.citynet}/${eventData.data.username} `);
+                        $(`#citynet_user_${eventData.data.user_id}`).text(eventData.data.citynet);
+                        break;
+                }
+
+
+            };
+
+
+            eventSource.onerror = function (event) {
+                console.error("[SSE Error]:", event);
+                const readyStateMap = {
+                    0: 'CONNECTING',
+                    1: 'OPEN',
+                    2: 'CLOSED'
+                };
+
+                console.error("EventSource readyState:", readyStateMap[eventSource.readyState] || eventSource.readyState);
+
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    console.log("Connection was closed. Attempting to reconnect in 4 seconds...");
+                    setTimeout(() => {
+                        setupSSEConnection(userId);
+                    }, 4000);
+                }
+            };
+
+        } // This is the closing bracket of the main SSE function.*****************************************************
+        // ************************************************************************************************************
+
+        //handles when someone lands a hit on you in pvp. data.attacker will have the attacker user id, eventData.app will tell you which branch you go on:
+            //banhammer: data.message goes in a prompt, eventData.redirect goes to window.location.href
+            //sword: data.message goes into the result box
+            //zap: data.state updates your wound tracker
+        function pvpHit(data) {
+            console.log("pvp hit with data:", data);
+            let promptbox = $(`#promptbox-${data.attacker}`);
+            let message = "";
+            if (data.app == "Banhammer") {
+                finishPvpPromptBox(true, data.message, data.attacker)
+                alert(data.message);
+                metUsers = {};
+                window.location.href = data.redirect;
+                return;
+            } else if (data.app == "Sword") {
+                message = `${data.app} attack: The App ${data.message} was deleted from your storage.`;
+            } else if (data.app == "Zap") {
+                updateWoundTracker(data.state);
+                message = `${data.app} attack: Brain damage detected - you are now ${data.state}`
+            } else if (data.app == "Tracer") {
+                message = "You were successfully Traced - the attacker is now aware of your name and CityNet number."
+            }
+
+            finishPvpPromptBox(true, message, data.attacker)
+        }
+
+        function incomingPvpAttackPrompt(data) {
+            $(`#promptbox-${data.attacker}`).remove();
+            if (data.attacker in pvpResponseRemoveTimers) {
+                clearTimeout(pvpResponseRemoveTimers[data.attacker]);
+                delete pvpResponseRemoveTimers[data.attacker];
+            }
+            let pvpPromptContainer = $("#pvp-prompt-container");
+            let userHash = hashUserId(data.attacker);
+            let defenseApp = data.app === "Tracer" ? "Cloak" : "Shield";
+            promptBox = $("<div>").attr("id", `promptbox-${data.attacker}`)
+                .attr("data-attacker-id", data.attacker)
+                .addClass("pvp-prompt")
+                .addClass("chrome-box")
+                .addClass("console-text")
+                .append(`<h3 class="cyberpunk-error">DANGER!</h3>`)
+                .append(`<div>Incoming attack from user #<span class="futuristic-text">${userHash}</span></div>`)
+                .append(`<div>Attacker App class: <span class="futuristic-text">${data.app}</span></div>`)
+                .append(`<div>Attempt to deploy <span class="futuristic-text">${defenseApp}</span> as a countermeasure?</div>`)
+                .append(`<div>Decision required in: <span id="prompt-ticker-${data.attacker}" class="futuristic-text">5</span> seconds</div>`);
+            buttonContainer = $("<div>").attr("id", `resp-buttons-${data.attacker}`);
+            $('<button>')
+                .addClass('chrome-box futuristic-text large') // Add classes for styling
+                .text(`Deploy ${defenseApp}`)
+                .attr('data-attacker-user-id', data.attacker)
+                .attr('data-defense-app', defenseApp)
+                .on("click", function () {
+                    handleResponseButtonClick($(this).attr('data-attacker-user-id'), 'yes');
+                })
+                .appendTo(buttonContainer);
+            $('<button>')
+                .addClass('chrome-box futuristic-text large') // Add classes for styling
+                .text(`Do nothing`) 
+                .attr('data-attacker-user-id', data.attacker)
+                .on("click", function () {
+                    handleResponseButtonClick($(this).attr('data-attacker-user-id'), 'no');
+                })
+                .appendTo(buttonContainer);
+            buttonContainer.appendTo(promptBox);
+            promptBox.appendTo(pvpPromptContainer);
+            pvpResponseTimers[data.attacker] = 5;
+
+            function responseTimerCountdown(attackerId) {
+                console.log("response tick for attacker", attackerId, "tick", pvpResponseRemoveTimers[attackerId]);
+                if (pvpResponseTimers[attackerId] <= 0) {
+                    delete pvpResponseTimers[attackerId];
+                    handleResponseButtonClick(attackerId, 'no');
+                } else if (pvpResponseTimers[attackerId]) {
+                    pvpResponseTimers[attackerId]-=1;
+                    $(`#prompt-ticker-${attackerId}`).text(pvpResponseTimers[attackerId]);
+                    setTimeout(responseTimerCountdown, 1000, attackerId);
+                }
+            }
+            setTimeout(responseTimerCountdown, 1000, data.attacker);
+        }
+
+        function finishPvpPromptBox(success, message, attackerId) {
+            if(!$(`#promptbox-${attackerId}`).length) {
+                //if prompt box does not exist, create a basic element
+                let pvpPromptContainer = $("#pvp-prompt-container");
+                promptBox = $("<div>").attr("id", `promptbox-${attackerId}`)
+                    .attr("data-attacker-id", attackerId)
+                    .addClass("pvp-prompt")
+                    .addClass("chrome-box")
+                    .addClass("console-text")
+                    .appendTo(pvpPromptContainer);
+            }
+            //clear prompt box, display message for 5 seconds then disappear
+            //success should be true if the attack succeeded i.e. you failed to defend against it in time
+            if (success === true) {
+                $(`#promptbox-${attackerId}`).html(`<h3 class="cyberpunk-error">WARNING!</h3>
+                    <div>Incoming attack from user #<span class="futuristic-text">${hashUserId(attackerId)}</span> succeeded:</div>
+                    <div>${message}</div>`)
+            } else {
+                $(`#promptbox-${attackerId}`).html(`<h3 class="cyberpunk-success">SUCCESS</h3>
+                    <div>Successful defense against attack from user #<span class="futuristic-text">${hashUserId(attackerId)}</span>:</div>
+                    <div>${message}</div>`)
+            }
+            pvpResponseRemoveTimers[attackerId] = setTimeout(function () {
+                delete pvpResponseRemoveTimers[attackerId];
+                $(`#promptbox-${attackerId}`).remove();
+            }, 10000);
+        }
+
+
+        // White IC cloaked
+        function handleCloakMessage(data) {
+            console.log('function handleCloakMessage called with this data:', data);
+            if (data && data.node_id === nodeId) {
+                var message = data.message;
+                var timestamp = new Date(data.timestamp);
+                var endTime = new Date(timestamp.getTime() + 5 * 60 * 1000);
+                var messageDiv = document.getElementById('whiteic-messages');
+
+                var timerContainer = document.getElementById('white-ic-timer-container'); // ID of your White IC countdown timer container
+
+                // Make the messageDiv visible
+                messageDiv.style.display = 'block';
+                // Hide the timer container
+                if (timerContainer) {
+                    timerContainer.style.display = 'none';
+                }
+
+                console.log('message:', message);
+                console.log('timestamp:', timestamp);
+                console.log('endTime:', endTime);
+                console.log('messageDiv:', messageDiv);
+
+                var intervalId = setInterval(() => {
+                    var now = new Date();
+                    var remainingTime = endTime - now;
+
+                    if (remainingTime <= 0) {
+                        clearInterval(intervalId);
+                        pushNetworkMessage("Your Cloak against the White IC has expired!");
+                        messageDiv.style.display = 'none';
+                    } else {
+                        var minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+                        messageDiv.innerHTML = message + " - " + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                    }
+                }, 1000);
+            }
+        }
+
+
+        function handleAppUsedUpdate(data) {
+            console.log("handleAppUsedUpdate function called **************** WORKING");
+            console.log('Received app used update:', data);
+
+            updateNodeStatus(data.node_status);
+            console.log('Updating inventory apps...');
+            updateInventoryApps();
+
+            let nodeStatus = data.node_status;
+            let nodeTypeId = data.node_type_id;
+            let is_cracked = data.is_cracked;
+            let is_home_user = data.is_home_user;
+            let nodeType = data.node_type;
+
+            console.log('Received nodeStatus:', nodeStatus);
+            console.log('Is node cracked:', is_cracked);
+            console.log('nodeTypeId:', nodeTypeId);
+            console.log('Is home user:', is_home_user);
+            console.log('Node Type:', nodeType);
+
+            const blocker_nodes = ['Password', 'Grey IC', 'Black IC'];
+
+            // Safely accessing the nextNodeButton element
+            const nextNodeButton = document.querySelector('#nextNodeButton');
+            if (nextNodeButton) {
+                // Show the button if the user is a home user, or if the node is not a blocker type, or if it's a blocker type and cracked
+                if (is_home_user === true || !blocker_nodes.includes(nodeType) || (blocker_nodes.includes(nodeType) && is_cracked === true)) {
+                    nextNodeButton.style.display = 'block';
+                } else {
+                    nextNodeButton.style.display = 'none';
+                }
+            }
+        }
+        
+
+        function updateNextNodeButtonVisibility(isHomeUser, isCracked, nodeType) {
+            const blockerNodes = ['Password', 'Grey IC', 'Black IC'];
+            const nextNodeButton = document.querySelector('#nextNodeButton');
+            console.log("updateNextNodeButtonVisibility function, isCracked:", isCracked);
+            if (nextNodeButton) {
+                if (isHomeUser === true || !blockerNodes.includes(nodeType) || (blockerNodes.includes(nodeType) && isCracked === true)) {
+                    nextNodeButton.style.display = 'block';
+                } else {
+                    nextNodeButton.style.display = 'none';
+                }
+            }
+        }
+
+        function fetchFileList(nodeId) {
+            console.log("fetchFileList started for nodeId:", nodeId);
+            $.ajax({
+                url: '/netrunning/fetch_file_list/' + nodeId,
+                type: 'GET',
+                success: function (response) {
+                    console.log("Response:", response);
+                    if (response.error) {
+                        console.error(response.error);
+                        return;
+                    }
+                    console.log("GET call done");
+
+                    // Check if there are file names in the response
+                    if (response.file_names && response.file_names.length > 0) {
+                        // Populate the file list
+                        var fileList = $('#file-list');
+                        fileList.empty();
+                        response.file_names.forEach(function (fileName) {
+                            fileList.append('<li>' + fileName + '</li>');
+                        });
+
+                        // Show the downloadable-files div since there are files
+                        $('#downloadable-files').show();
+                    } else {
+                        // Optionally, hide the file list if there are no files
+                        $('#downloadable-files').hide();
+                    }
+                },
+                error: function (error) {
+                    console.error(error);
+                }
+            });
+        }
+
+        
+
+        function updateInventoryApps() {
+            console.log("updateInventoryApps called ****************");
+            $.get('/netrunning/get_applicable_apps?node_id=' + nodeId, function (data) {
+                console.log('Received applicable apps from server ************ WORKING:', data);
+                populateInventoryApps(data)
+
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                console.error('Error fetching applicable apps:', textStatus, errorThrown);
+            });
+        }
+
+        function populateInventoryApps(appData) {
+            var inventoryActionsDiv = $('#inventory-actions');
+            var inventoryAppsTable = $('#inventory-apps');
+            playerInventory = {};
+            inventoryActionsDiv.empty();
+            inventoryAppsTable.empty();
+            appData.forEach(function (app) {
+                if (app.applicable) {
+                    var appButton = $('<button>')
+                        .addClass('chrome-box futuristic-text app-button') // Add classes for styling
+                        .text(`Use ${app.app_type} (${app.count})`) // Include the count in the button text
+                        .data('app-type-name', app.app_type)
+                        .click(handleAppButtonClick);
+                    inventoryActionsDiv.append(appButton);
+                }
+                inventoryAppsTable.append(`<tr><td>${app.app_type}</td><td>${app.count}</td></tr>`)
+                playerInventory[app.app_type] = app.count;
+            });
+            if (inventoryActionsDiv.is(':empty')) {
+                inventoryActionsDiv.html("No node-specific actions available based on your inventory")
+            }
+            for (appName of ["Banhammer", "Sword", "Zap"]) {
+                console.log("check if we have ", appName);
+                if (appName in playerInventory) {
+                    $(`.pvp-button[data-app-type-name='${appName}']`).show();
+                } else {
+                    $(`.pvp-button[data-app-type-name='${appName}']`).hide();
+                }
+            }
+            for (appName of ["Cloak", "Shield"]) {
+                if (appName in playerInventory) {
+                    $(`button[data-defense-app='${appName}']`).attr("disabled", true);
+                } else {
+                    $(`button[data-defense-app='${appName}']`).removeAttr('disabled');
+                }
+            }
+        }
+
+        function handleAppButtonClick() {
+            console.log("handleAppButtonClick called ****************");
+            var appTypeName = $(this).data('app-type-name');
+            var citynet_number = null;
+
+            console.log("Value of appTypeName:", appTypeName);
+            if (appTypeName.toLowerCase() === 'siphon') {
+                var choice = prompt("Leave this field empty to siphon for yourself, otherwise set a CityNet number as target.");
+                if (!choice || choice.trim() === "") {
+                    citynet_number = "self";
+                } else {
+                    citynet_number = choice.trim();
+                }
+                //location.reload(true); // This is the forced page reload TRUE
+            }
+
+
+            $.post('/netrunning/use_app', { app_type_name: appTypeName, node_id: nodeId, citynet_number: citynet_number }, function (response) {
+                console.log("/netrunning/use_app called ****************");
+                console.log('App used:', response);
+                if (response.status !== "success") {
+                    alert("Error: " + response.message);
+                } else {
+                    // Update node status
+                    var nodeStatus = "{{ 'cracked' if data.node.is_cracked else 'good' }}";
+                    //if (nodeStatus !== "{{ 'cracked' if data.node.is_cracked else 'good' }}") {
+                    //    console.log('page reload');
+                    //    location.reload(true);  // Refresh the page if the node status has changed
+                    //}
+                    //location.reload(true); // This is the forced page reload TRUE
+                    // Update the inventory apps
+                    pushNetworkMessage(`${appTypeName} executed successfully.`)
+                    updateInventoryApps();
+                }
+            });
+        }
+
+        function handlePvpButtonClick(metUserId, appTypeName) {
+            $('.pvp-button').prop('disabled', true);
+            $.ajax({
+                url: '/netrunning/use_app/attack',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ appTypeName: appTypeName, node: nodeId, target: metUserId }),
+                success: function (response) {
+                    if (response.error) {
+                        switch (response.error) {
+                        case "target_not_in_node":
+                            $(`#user_pvp_message_${metUserId}`).text("Attack failed: Target left this Node before your attack arrived.");
+                            break;
+                        case "user_not_in_node":
+                            $(`#user_pvp_message_${metUserId}`).text("ERROR: YOU are not in the same node - this is an off-game error.");
+                            break;
+                        case "attack_already_running":
+                            $(`#user_pvp_message_${metUserId}`).text("Attack failed: You already have an attack running.");
+                            break;
+                        case "app_type_not_in_db":
+                            $(`#user_pvp_message_${metUserId}`).text("ERROR: This is a nonexistent app type - this is an off-game error.");
+                            break;
+                        case "app_not_in_inventory":
+                            $(`#user_pvp_message_${metUserId}`).text("Attack failed: You don't have an App of this type.");
+                            break;
+                        case "app_not_applicable":
+                            $(`#user_pvp_message_${metUserId}`).text("ERROR: This is not an attacker app - this is an off-game error.");
+                            break;
+                        case "unhandled_route":
+                            break;
+                        }
+                    } else {
+                        if (response.result == "success") {
+                            let resultMessage = "Successful attack!";
+                            if (appTypeName === "Banhammer") {
+                                resultMessage += " User was ejected from network.";
+                            } else if (appTypeName === "Sword") {
+                                resultMessage += " Random App deleted from user.";
+                            } else if (appTypeName === "Zap") {
+                                resultMessage += " User was wounded.";
+                            }
+                            $(`#user_pvp_message_${metUserId}`).text(resultMessage);
+                            $('.pvp-button').removeAttr('disabled');
+                        } else {
+                            $(`#user_pvp_message_${metUserId}`).text("App initialized, attempting to bypass defenses...");
+                            pvpAttackTarget = metUserId;
+                        }
+                    }
+                    updateInventoryApps();
+                },
+                error: function (error) {
+                    console.log("Error result: " + error);
+                    
+                    $('.pvp-button').removeAttr('disabled');
+                    updateInventoryApps();
+                }
+            });
+        }
+
+        function handleResponseButtonClick(attackerId, reply) {
+            console.log("responding", reply, "to attack from", attackerId)
+            if (attackerId in pvpResponseTimers) {
+                clearTimeout(pvpResponseTimers[attackerId]);
+                delete pvpResponseTimers[attackerId];
+            }
+            $(`#promptbox-${attackerId}`).html(`<div class="futuristic-text">Processing response...</div>`);
+            $.ajax({
+                url: '/netrunning/use_app/respond',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ response: reply, node: nodeId, attacker: attackerId }),
+                success: function (response) {
+                    console.log('response:', response);
+                    if (response.result == "success") {
+                        finishPvpPromptBox(false, "Attack successfully blocked with a defense app.", attackerId);
+                    } else if (response.error) {
+                        console.log("Error result: " + response.error);
+                        if (response.error == "attack_already_cancelled") {
+                            finishPvpPromptBox(false, "Attacker has left this Node, the attack was cancelled. No defense app used.", attackerId);
+                        } else if (response.error == "attack_type_invalid") {
+                            finishPvpPromptBox(false, "ERROR: Attack type invalid", attackerId);
+                        } else if (response.error == "no_defense_apps") {
+                            $(`#promptbox-${attackerId}`).html(`<h3 class="cyberpunk-error">ERROR:<h3>
+                            <div>No defense apps left in your Inventory.</div>`)
+                            pvpResponseRemoveTimers[attackerId] = setTimeout(function () {
+                            delete pvpResponseRemoveTimers[attackerId];
+                            $(`#promptbox-${attackerId}`).remove();
+                        }, 10000);
+                        } else if (response.error == "app_type_not_in_db") {
+                            finishPvpPromptBox(false, "ERROR: App type seems nonexistent", attackerId);
+                        } else if (response.error == "unhandled_route") {
+                            finishPvpPromptBox(false, "ERROR: Unhandled route", attackerId);
+                        }
+                    }
+                },
+                error: function (error) {
+                    console.log("Error result: " + error);
+                }
+            });
+        }
+
+
+        $("#exit-network").click(function () {
+            console.log("exit-network click function called **************** WORKING");
+            // Make a POST request to exit the network
+            //Not sure if necessary, metUsers db is regularly updated for all on every user action, including exit
+            $.post("/netrunning/exit_network", { user_id: userId }, function (response) {
+                if (response.status === "success") {
+                    alert("Successfully disconnected from network! Redirecting...");
+
+                    // Clear the local metUsers dictionary
+                    metUsers = {};
+
+                    window.location.href = response.redirect;
+                } else {
+                    console.error('Error:', response.message);
+                    alert("Error: " + response.message);
+                }
+            });
+        });
+
+        function hashUserId(userId) {
+            const minValue = 4369;
+            const intervalLen = 59999 // a fairly large prime number below the difference between hex ffff and 1111
+            return ((userId * userId + 10) % intervalLen + minValue).toString(16)
+        }
+
+        function updateOtherUsersLists(metUsers, currentNetworkId, currentUserId) {
+            const usersList = $('#usersList');
+            const nodeUsers = $('#nodeUsers');
+            const interactionSection = $('#netrunner-interaction-section');
+
+            if (!metUsers || typeof metUsers !== 'object' || !metUsers[currentNetworkId] || typeof metUsers[currentNetworkId] !== 'object') {
+                console.log("No met users data available for current network or user");
+                interactionSection.hide();
+                return;
+            }
+
+            console.log("processing met users list:", metUsers);
+
+            const currentUserMetUsers = metUsers[currentNetworkId][currentUserId] ? metUsers[currentNetworkId][currentUserId]["met_users"] : {};
+            //console.log("Current User Met Users:", currentUserMetUsers);
+
+            // Clear any existing list items
+            usersList.html('');
+
+            $(".node-user").each(function () {
+                $(this).attr("data-left-node", "true");
+            });
+
+            // Iterate over the metUsers for the current user and create list items
+            Object.keys(currentUserMetUsers).forEach((metUserId, index) => {
+                if (parseInt(metUserId) === currentUserId) {
+                    //console.log("Skipping current user:", metUserId);
+                    return; // Skip the current user
+                }
+                let metUser = currentUserMetUsers[metUserId];
+                console.log("Processing met user:", metUser);
+                let userHash = hashUserId(metUserId);
+                if (metUser.current_location.order == node.order) {
+                    let userDiv = $(`#nodeuser_${metUserId}`)
+                    if (userDiv.length) {
+                        userDiv.removeAttr("data-left-node");
+                        if (metUserId in userLeaveTimers) {
+                            clearTimeout[metUserId];
+                            $(`#button_container_${metUserId}`).show();
+                            $(`#user_last_action_${metUserId}`).text("Entered node.");
+                            delete userLeaveTimers[metUserId];
+                        }
+                        if (metUser.tracer_used) {
+                            $(`#citynet_user_${metUserId}`).text(metUser.citynet_number);
+                        } else {
+                            $(`#citynet_user_${metUserId}`).text("UNKNOWN");
+                        }
+                    } else {
+                        userDiv = $("<div/>").attr("id", `nodeuser_${metUserId}`)
+                            .attr("data-met-user-id", metUserId)
+                            .addClass("node-user")
+                            .addClass("chrome-box")
+                            .addClass("console-text")
+                            .append(`<div>User #<span class="futuristic-text">${userHash}</span></div>`);
+                        if (metUser.tracer_used) {
+                            userDiv.append(`<div>CityNet <span id="citynet_user_${metUserId}" class="futuristic-text">${metUser.citynet_number}</span></div>`);
+                        } else {
+                            userDiv.append(`<div>CityNet <span id="citynet_user_${metUserId}" class="futuristic-text">UNKNOWN</span></div>`);
+                        }
+
+                        userDiv.append(`<div>Last known action: <span id="user_last_action_${metUserId}" class="futuristic-text">Entered node</span></div>`)
+                        $("<div/>").attr("id", `user_pvp_message_${metUserId}`).addClass('futuristic-text').appendTo(userDiv);
+
+                        buttonContainer = $("<div/>").attr('id', `button_container_${metUserId}`);
+                        // banhammer
+                        $('<button>')
+                            .attr('id', `pvp_banhammer_${metUserId}`)
+                            .addClass('chrome-box futuristic-text pvp-button large') // Add classes for styling
+                            .text('Banhammer') // Include the count in the button text
+                            .attr('data-app-type-name', 'Banhammer')
+                            .attr('data-target-user-id', metUserId)
+                            .on("click", function () {
+                                handlePvpButtonClick($(this).attr('data-target-user-id'), $(this).attr('data-app-type-name'));
+                            })
+                            .appendTo(buttonContainer);
+
+                        // sword
+                        $('<button>')
+                            .attr('id', `pvp_sword_${metUserId}`)
+                            .addClass('chrome-box futuristic-text pvp-button large') // Add classes for styling
+                            .text('Sword') // Include the count in the button text
+                            .attr('data-app-type-name', 'Sword')
+                            .attr('data-target-user-id', metUserId)
+                            .on("click", function () {
+                                handlePvpButtonClick($(this).attr('data-target-user-id'), $(this).attr('data-app-type-name'));
+                            })
+                            .appendTo(buttonContainer);
+
+                        // zap
+                        $('<button>')
+                            .attr('id', `pvp_zap_${metUserId}`)
+                            .addClass('chrome-box futuristic-text pvp-button large') // Add classes for styling
+                            .text('Zap') // Include the count in the button text
+                            .attr('data-app-type-name', 'Zap')
+                            .attr('data-target-user-id', metUserId)
+                            .on("click", function () {
+                                handlePvpButtonClick($(this).attr('data-target-user-id'), $(this).attr('data-app-type-name'));
+                            })
+                            .appendTo(buttonContainer)
+
+                        userDiv.append(buttonContainer);
+                        if (pvpAttackTarget != undefined) {
+                            $('.pvp-button').prop('disabled', true);
+                        }
+                    }
+                    nodeUsers.append(userDiv);
+                } else {
+                    //other user is somewhere else in network, create an other users record
+                    if (metUser.tracer_used && metUser.current_location) {
+                        usersList.append(`<div> #${userHash}-${metUser.citynet_number}@${metUser.current_location.order}.${metUser.current_location.node_name}</div>`)
+                    } else if (metUser.current_location) {
+                        usersList.append(`<div> #${userHash}-????????@${metUser.current_location.order}.${metUser.current_location.node_name}</div>`)
+                    } else {
+                        usersList.append(`<div> #${userHash}-????????</div>`)
+                    }
+                }
+            });
+
+            for (appName of ["Banhammer", "Sword", "Zap"]) {
+                console.log("check if we have ", appName);
+                if (appName in playerInventory) {
+                    $(`.pvp-button[data-app-type-name='${appName}']`).show();
+                } else {
+                    $(`.pvp-button[data-app-type-name='${appName}']`).hide();
+                }
+            }
+
+            $(".node-user[data-left-node='true']").each(function () {
+                let metUserId = $(this).attr("data-met-user-id")
+                $(`#button_container_${metUserId}`).hide();
+                $(`#user_last_action_${metUserId}`).text("User has left this Node.");
+                userLeaveTimers[metUserId] = setTimeout(() => {
+                    $(this).remove();
+                }, 5000);
+            });
+
+        }
+
+
+        function updateNodeStatus(status) {
+            is_cracked = status === "cracked";
+            $("#node-status-display")
+                .text(status)
+                .removeClass()
+                .addClass(status === "cracked" ? "cyberpunk-error" : "cyberpunk-success");
+        }
+
+        // This function handles the cloak message upon page load
+        function initCloakMessage(cloakData, userid) {
+            // console.log("initCloakMessage function called ****************", cloakData);
+            // console.log("userId: ", userId);
+            // console.log("node_id: ", cloakData[userId].node_id);
+
+            // Check if the node_id matches the global nodeId
+
+            if (cloakData && cloakData[userId] && cloakData[userId].node_id === nodeId) {
+
+                var message = cloakData[userId].message;
+                var timestamp = new Date(cloakData[userId].timestamp);
+                var endTime = new Date(timestamp.getTime() + 5 * 60 * 1000);
+                var timerDiv = document.getElementById('whiteic-messages');
+
+                // Debug logs
+                console.log("initCloakMessage function message: ", message);
+                console.log("initCloakMessage function timestamp: ", timestamp);
+                console.log("initCloakMessage function endTime: ", endTime);
+                console.log("initCloakMessage function messageDiv: ", timerDiv);
+
+                // Make the messageDiv visible
+                timerDiv.style.display = 'block';
+
+                var intervalId = setInterval(() => {
+                    var now = new Date();
+                    var remainingTime = endTime - now;
+
+                    if (remainingTime <= 0) {
+                        timerDiv.style.display = 'none';
+                        clearInterval(intervalId);
+                        pushNetworkMessage("Your Cloak against White IC has expired!");
+                    } else {
+                        var minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+                        timerDiv.innerHTML = message + " - " + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                    }
+                }, 1000);
+            }
+        }
+
+        // Helper function to check if the user has a Cloak app
+        function userHasCloakApp() {
+            console.log("userHasCloakApp?", ("Cloak" in playerInventory));
+            return "Cloak" in playerInventory;
+        }
+
+
+        // Helper function to check if the user has a Tracer app
+        function userHasTracerApp() {
+            console.log("userHasTracerApp?", ("Tracer" in playerInventory));
+            return "Tracer" in playerInventory;
+        }
+
+
+        function initiateIcCountdown() {
+            const icTimerSettings = {
+                'White IC': {
+                    message: 'White IC alerted, trace is in progress!',
+                    countdownTime: 30 // default countdown time in seconds
+                },
+                'Grey IC': {
+                    message: 'Grey IC alerted, deck integrity is under attack!',
+                    countdownTime: 30 // default countdown time in seconds
+                },
+                'Black IC': {
+                    message: 'DANGER - Black IC alerted, your defense barrier will be breached!',
+                    countdownTime: 30 // default countdown time in seconds
+                }
+            };
+
+            let currentIcType = Object.keys(icTimerSettings).find(type => !is_home_user && nodeType.name === type && !is_cracked);
+            console.log("initiateIcCountdown with ic type:", currentIcType);
+            console.log("is home user:", is_home_user);
+            if (currentIcType) {
+                let icTimerSetting = icTimerSettings[currentIcType];
+                let timerElement = document.getElementById("ic-timer");
+                let timerContainer = document.getElementById("ic-timer-container");
+                let countdownTime = icTimerSetting.countdownTime;
+
+                pushNetworkMessage(icTimerSetting);
+                timerContainer.style.display = 'block';
+
+                const timerInterval = setInterval(() => {
+                    const minutes = Math.floor(countdownTime / 60);
+                    const seconds = countdownTime % 60;
+                    if (is_cracked) {
+                        clearInterval(timerInterval);
+                        timerContainer.style.display = 'none';
+                        return;
+                    }
+
+                    timerElement.textContent = `${currentIcType} alerted, ${minutes}:${seconds.toString().padStart(2, '0')} until action!`;
+
+                    if (countdownTime === 0) {
+                        clearInterval(timerInterval);
+                        timerElement.textContent = "";
+                        //no additional logic needed for when the timer goes off, user will receive SSE about it
+                    } else {
+                        countdownTime--;
+                    }
+                }, 1000);
+            }
+        }
+
+        function updateWoundTracker(health_state) {
+            $("#wound-tracker").removeClass();
+            $("#wound-tracker").addClass(`wound-${health_state}`);
+            if (health_state == 'wounded') {
+                $("#state-name").html("WOUNDED");
+                $("#state-text").html("Serious injury detected.");
+            } else if (health_state == 'dying') {
+                $("#state-text").html("Immediate medical attention required.");
+                $("#state-name").html("DYING");
+            } else if (health_state == 'dead') {
+                $("#state-text").html("Vital signs ceased.");
+                $("#state-name").html("FLATLINED");
+            } else {
+                $("#state-text").html("Vital signs nominal.");
+                $("#state-name").html("OK");
+            }
+            $(".graph").attr("data-state", health_state);
+            $(".cell").each(function () {
+                $(this).attr("data-state", health_state);
+            });
+        }
+
+        function pushNetworkMessage(message) {
+            let div = $("<div>").html(message);
+            console.log("pushing network message:", message);
+            $("#networkMessages").append(div);
+            setTimeout(function () {
+                div.remove();
+            }, 10000);
+        }
+
+        //  function displayPaths(obj, currentPath = '') {
+        //     if (typeof obj !== 'object' || obj === null) return;
+        //
+        //     for (const key in obj) {
+        //         if (obj.hasOwnProperty(key)) {
+        //             const newPath = currentPath ? `${currentPath}.${key}` : key;
+        //             console.log(newPath);
+        //             displayPaths(obj[key], newPath);
+        //         }
+        //     }
+        // }
+
+        history.pushState(null, null, window.location.href);
+        window.onpopstate = function (event) {
+            history.go(1);
+        };
+
+
+    </script>
+</body>
+
+</html>

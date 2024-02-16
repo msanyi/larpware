@@ -1,0 +1,50 @@
+{% extends 'base_frame.html' %}
+
+{% block header %}
+<h1 class="futuristic-text">{% block title %}User Settings{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="centered chrome-box">
+    <h2 class="futuristic-text">UI theme</h3>
+    <select name="themeSelector" id="themeSelector" class="chrome-box futuristic-text large fullwidth padded">
+        <option value="" hidden selected>Click to select...</option>
+        <option value="console-green">Console Green</option>
+        <option value="maelstrom-red">Maelstrom Red</option>
+        <option value="neon-blue">Neon Blue</option>
+        <option value="mox-pink">Mox Pink</option>
+        <option value="militech-yellow">Militech Yellow</option>
+        <option value="monochrome-grey">Monochrome Grey</option>
+        <option value="night-city-blues">Night City Blues</option>
+        <option value="flatline-classic">FlatLine Classic</option>
+    </select>
+</div>
+
+<div class="chrome-box centered">
+    <h2 class="futuristic-text">Change Password</h3>
+    <a class="hoverglitch" href="{{ url_for('user_app.change_password') }}" data-text="Change Password">Click on this link to change your password</a>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    $('#themeSelector').change(function () {
+        var theme = $(this).val();
+
+        $.ajax({
+            url: '/settings/theme/set',
+            type: 'POST',
+            data: JSON.stringify({
+                theme: theme
+            }),
+            contentType: 'application/json',
+            success: function (response) {
+                location.reload();
+            }
+        });
+
+    });
+
+</script>
+{% endblock %}

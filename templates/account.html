@@ -1,0 +1,33 @@
+{% extends 'base_frame.html' %}
+
+{% block content %}
+
+<div class="chrome-box">
+    <div class="centered console-text">Your CityNet number is:</div>
+    <div class="centered bold xx-large futuristic-text">{{ citynet }}</div>
+</div>
+<div class="chrome-box">
+    <h3 class="futuristic-text">Add Contact</h3>
+    <form method="POST">
+        <label for="new_user_citynet" class="futuristic-text">User CityNet Number:</label><br>
+        <input type="text" id="new_user_citynet" name="new_user_citynet" class="chrome-box"><br>
+        <input type="submit" name="add_user" value="Add" class="futuristic-text large-button">
+    </form>
+</div>
+
+<div class="chrome-box">
+
+    <h3 class="futuristic-text">{% block title %}Contacts{% endblock %}:</h3>
+    <div class="futuristic-text">
+        {% for user in known_users %}
+        <div>
+            {{ user.citynet }} - {{ user.username }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+{% endblock %}
+
