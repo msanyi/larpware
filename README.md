@@ -45,9 +45,6 @@ LARP support software for a Cyberpunk game
 
 # Known issues:
 
-- node_user record stays in db if the netrunner did not use "log out", it can lead to the netrunner entering the wrong node when connecting - periodic auto cleaning ("connection time out") and upsert instead of insert in node_user can fix this
-- overhaul on all UI strings, unified language and phrasing
-- netrunning is still not stable, possible SSE issue - profile it and see if we can fix it or need to replace it
 - "modify network" on admin page fails when attempting to modify a network which was ever visited by a user (constraints with node_user and node actions tables fail)
 
 # Features missing for stable version
